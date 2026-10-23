@@ -81,7 +81,11 @@ export function fit(p, pos, targetEra, bonus = 0) {
   return Math.max(15, Math.min(100, p.rating + bonus - positionPenalty(p, pos) - eraAdjustment(p, targetEra).penalty));
 }
 export const playerAbility = (s, p, pos) => fit(p, pos, s.targetEra, chemistryBonus(s.picks, p));
-export const playerTier = (s, p) => p ? tier(Math.min(100, p.rating + chemistryBonus(s.picks, p))) : null;
+export function playerTier(s, p, pos) {
+  if (!p) return null;
+  const index=s.picks.indexOf(p);
+  return tier(playerAbility(s,p,pos || (index>=0 ? index<11 ? positions(s.formation)[index] : 'SUB' : p.pos || p.positions?.[0] || 'SUB')));
+}
 export function strength(s) {
   return s.picks.slice(0, 11).reduce((sum, p, i) => sum + playerAbility(s, p, positions(s.formation)[i]), 0) / 11;
 }

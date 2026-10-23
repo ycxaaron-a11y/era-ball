@@ -42,7 +42,7 @@ function slot(p, i, pos, xy) {
   const preview = !p && placement?.slot === i ? candidateFor(s, placement) : null;
   const shown = p || preview;
   const viewState = preview ? { ...s, picks: s.picks.map((x,j)=>j===i?shown:x) } : s;
-  const grade = shown ? playerTier(viewState,shown) : null;
+  const grade = shown ? playerTier(viewState,shown,pos) : null;
   const impact = p && landingImpact?.index===i && landingImpact.until>Date.now();
   const title = shown ? `${shown.name} · ${positionList(shown.positions)} · ${adjustments(shown, pos, viewState)}${preview ? '；再点同一位置确认' : ''}` : `空位：${positionName(pos)}`;
   return `<button class="slot ${shown ? tierClass(grade) : ''} ${preview ? 'slot-preview selected' : ''} ${placement && !p ? 'can-place' : ''} ${impact?'is-impact':''}" data-slot="${i}" ${uiBusy() ? 'disabled' : ''} ${xy ? `style="left:${xy[0]}%;top:${xy[1]}%"` : ''} title="${esc(title)}" aria-label="${esc(title)}">
@@ -157,7 +157,7 @@ function setupUI() {
 }
 function playerDetail(i) {
   const p = s.picks[i], pos = slots()[i];
-  modal(`<h2>${esc(p.name)} <span class="tier">${playerTier(s,p)}${playerTier(s,p)!==p.tier?`（${p.tier} ↑）`:''}</span></h2><p>${esc(p.team)} · ${p.era} · ${heightLabel(p)} · 完全适应位置 ${positionList(p.positions)}</p>
+  modal(`<h2>${esc(p.name)} <span class="tier">${playerTier(s,p)}${playerTier(s,p)!==p.tier?`（${p.tier} →）`:''}</span></h2><p>${esc(p.team)} · ${p.era} · ${heightLabel(p)} · 完全适应位置 ${positionList(p.positions)}</p>
     <div class="rating-details">${esc(adjustments(p, pos))}</div><p class="profile-note">${esc(eraAdjustment(p, s.targetEra).reason)}。跨年代模拟属于游戏设定，并非对球员真实表现的预测。</p>
     ${onlineLocked() ? '<p>阵容已提交赛季，本局无法再调整。</p>' : `<label for="move-slot">调整位置（有球员时交换）</label><select id="move-slot">${slots().map((v, n) => `<option value="${n}" ${n === i ? 'selected' : ''}>${n + 1}. ${positionName(v)} ${s.picks[n] ? esc(s.picks[n].name) : '空位'}</option>`).join('')}</select><div class="setup-actions"><button id="move-player" class="primary">确认调整</button><button id="remove-player">移出阵容</button></div>`}`);
   if (!onlineLocked()) {
@@ -184,19 +184,22 @@ $('rules').onclick = () => modal(`<h2>更多年代，更多选择</h2><p>收录 
   <p>球员的多个首选位置全部不扣分；邻近位置扣 4 分，其他外场位置扣 12 分，门将错位扣 45 分。年代调整另外扣 0–3 分。点击阵中球员查看计算、换位或移除。</p>
   <p>赛前确定征战年代及排除年代，开局后锁定。赛季采用自定义 16 队杯赛：四组各四队，小组赛三轮后前二晋级，随后四分之一决赛、半决赛、决赛，均单场决胜。替补暂不自动换人。联机双方分别位于 A、C 组不同半区，只有都晋级才能在决赛会师；共同保存赛季种子与轮次。</p>
   <p>角色适配参考公开历史比赛位置资料；跨年代结果无法客观测量。<a href="docs/era-research.md" target="_blank" rel="noopener">研究来源与建模说明 ↗</a></p>`);
-let tournament=null, seasonCursor=0, seasonBusy=false, seasonRoom=null;
+let tournament=null, seasonCursor=0, seasonBusy=false, seasonRoom=null, seasonPage=null, seasonReveal=null, autoRunning=false, autoToken=0, seasonFailure='';
+const defaultSeasonPage=()=>seasonCursor===5?5:Math.max(0,seasonCursor-1);
+function stopAuto(){autoRunning=false;autoToken++;seasonReveal=null;if(seasonVisible())paintSeason();}
 const localSeasonKey='era-fc-season-v4';
 const draftFingerprint=()=>JSON.stringify({mode:s.mode,target:s.targetEra,formation:s.formation,picks:networkState(s).picks});
-function paintSeason(error=''){
+function paintSeason(error=seasonFailure){
+ seasonFailure=error;
  if(!tournament)return;
  if($('modal').open)$('modal').close();
- renderSeason(tournament,seasonCursor,{online:Boolean(seasonRoom),pending:seasonBusy,error,onNext:advanceSeason});
+ renderSeason(tournament,seasonCursor,{online:Boolean(seasonRoom),pending:seasonBusy,autoRunning,phaseIndex:seasonPage??defaultSeasonPage(),reveal:seasonReveal,error,onNext:()=>advanceSeason(),onAuto:runAuto,onStop:stopAuto,onSkip:skipSeason,onPage:index=>{seasonPage=index;paintSeason();window.scrollTo(0,0);},onExit:stopAuto});
 }
 function openLocalSeason(){
  const fingerprint=draftFingerprint(),stored=read(localSeasonKey,null);
  if(stored?.fingerprint===fingerprint&&stored?.version===4){tournament=stored.tournament;seasonCursor=Math.max(0,Math.min(6,stored.cursor));}
  else{tournament=createTournament({mode:s.mode,seed:crypto.getRandomValues(new Uint32Array(1))[0],humans:[draftTeam(s,'host','我的梦之队')]});seasonCursor=0;}
- seasonRoom=null;persistSeason();paintSeason();
+ seasonRoom=null;seasonPage=defaultSeasonPage();persistSeason();paintSeason();
 }
 function persistSeason(){if(!seasonRoom)localStorage.setItem(localSeasonKey,JSON.stringify({version:4,fingerprint:draftFingerprint(),tournament,cursor:seasonCursor}));}
 async function syncOnlineSeason(open=false){
@@ -208,16 +211,37 @@ async function syncOnlineSeason(open=false){
   tournament=createTournament({mode:s.mode,seed:state.seed,humans:members.map(m=>draftTeam(m.state,m.host?'host':'guest',m.host?'房主梦之队':'客队梦之队',true))});seasonCursor=0;seasonRoom=code;sessionStorage.setItem('era-fc-season-room-v4',code);
  }
  const changed=seasonCursor!==state.cursor;seasonCursor=Math.max(seasonCursor,state.cursor);
+ if(changed&&!autoRunning)seasonPage=defaultSeasonPage();
  if(open||(changed&&seasonVisible()))paintSeason();
 }
-async function advanceSeason(){
- if(seasonBusy||seasonCursor>=6)return;seasonBusy=true;let failure='';paintSeason();
+async function advanceSeason(animate=false,token=autoToken){
+ if(seasonBusy||seasonCursor>=6)return false;seasonBusy=true;let failure='';seasonFailure='';paintSeason();
  try{
-  if(seasonRoom){const code=seasonRoom,data=await rpc('fc_season_v4',{p_code:code,p_expected:seasonCursor});if(room!==code)return;seasonCursor=Math.max(seasonCursor,data.cursor);}
+  if(seasonRoom){const code=seasonRoom,data=await rpc('fc_season_v4',{p_code:code,p_expected:seasonCursor});if(room!==code)return false;seasonCursor=Math.max(seasonCursor,data.cursor);}
   else{seasonCursor++;persistSeason();}
-  paintSeason();
- }catch(e){failure=readableError(e);}
- finally{seasonBusy=false;if(seasonVisible())paintSeason(failure);}
+  seasonPage=seasonCursor-1;
+  if(animate){
+   seasonReveal={phase:seasonPage,count:0};paintSeason();
+   const total=tournament.phases[seasonPage].matches.length;
+   for(let i=1;i<=total;i++){
+    await new Promise(resolve=>setTimeout(resolve,300));
+    if(token!==autoToken||!seasonVisible())break;
+    seasonReveal={phase:seasonPage,count:i};paintSeason();
+   }
+  }
+  return true;
+ }catch(e){failure=readableError(e);return false;}
+ finally{seasonReveal=null;seasonBusy=false;if(seasonCursor===5)seasonPage=5;if(seasonVisible())paintSeason(failure);}
+}
+async function runAuto(){
+ if(autoRunning||seasonBusy||seasonCursor>=5)return;
+ autoRunning=true;const token=++autoToken;paintSeason();
+ try{while(autoRunning&&token===autoToken&&seasonCursor<5&&seasonVisible()){if(!await advanceSeason(true,token))break;}}
+ finally{if(token===autoToken){autoRunning=false;if(seasonCursor===5)seasonPage=5;if(seasonVisible())paintSeason();}}
+}
+function skipSeason(){
+ if(seasonRoom||seasonBusy||autoRunning)return;
+ seasonCursor=6;seasonPage=5;persistSeason();paintSeason();window.scrollTo(0,0);
 }
 $('simulate').onclick=async()=>{
  if(s.picks.some(p=>!p))return;
