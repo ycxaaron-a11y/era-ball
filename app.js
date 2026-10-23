@@ -1,8 +1,9 @@
+import { playerSilhouette, splusLightning } from './effects.js';
 import { positionName, positionList, heightLabel } from './display.js';
 import { candidateFor, selectCandidate, placeCandidate } from './placement.js';
 import { cloudConfig } from './config.js';
 import { pools, poolById, eras, eraById, positions, formations, fit, strength, season,
-  tierClass, eraAdjustment, positionPenalty, freshState, hydrateState, startDraft, reroll, networkState } from './data.js';
+  formationLayout, tierClass, eraAdjustment, positionPenalty, freshState, hydrateState, startDraft, reroll, networkState } from './data.js';
 import { request, validatePublicConfig } from './multiplayer.js';
 
 const $ = id => document.getElementById(id);
@@ -28,7 +29,7 @@ function adjustments(p, pos) {
   const a = eraAdjustment(p, s.targetEra), penalty = positionPenalty(p, pos);
   return `基础 ${p.rating} · 位置 −${penalty} · 年代 −${a.penalty} = ${fit(p, pos, s.targetEra)}；${a.reason}`;
 }
-function energy(p) { return p?.tier === 'S+' ? '<span class="splus-energy" aria-hidden="true"></span>' : ''; }
+function energy(p) { return splusLightning(p?.tier); }
 function slot(p, i, pos, xy) {
   const preview = !p && placement?.slot === i ? candidateFor(s, placement) : null;
   const shown = p || preview;
@@ -40,8 +41,8 @@ function render() {
   const pool = poolById(s.pool);
   $('wc').classList.toggle('active', s.mode === 'world_cup'); $('ucl').classList.toggle('active', s.mode === 'ucl');
   $('formation').value = s.formation; $('formation').disabled = onlineLocked();
-  let index = 0;
-  $('pitch').innerHTML = formations[s.formation].map((row, r) => row.map((pos, c) => slot(s.picks[index], index++, pos, [100 * (c + 1) / (row.length + 1), 14 + r * 24])).join('')).join('');
+  $('pitch').classList.toggle('five-lines', formations[s.formation].length === 5);
+  $('pitch').innerHTML = formationLayout(s.formation).map(({pos, x, y}, i) => slot(s.picks[i], i, pos, [x, y])).join('');
   $('bench').innerHTML = s.picks.slice(11).map((p, i) => slot(p, i + 11, 'SUB')).join('');
   document.querySelectorAll('[data-slot]').forEach(el => el.onclick = () => {
     if (!s.started) return setupUI();
@@ -73,7 +74,7 @@ function render() {
   $('players').innerHTML = pool ? pool.players.filter(p => filter === '全部' || p.positions.some(v => groups[filter].includes(v))).sort((a, b) => b.rating - a.rating).map(p => {
     const taken = s.picks.some(x => x?.identity === p.identity);
     return `<button class="player-card ${tierClass(p.tier)} ${placement?.playerId === p.id ? 'is-chosen' : ''}" data-player="${esc(p.id)}" aria-pressed="${placement?.playerId === p.id}" ${taken || s.picks.every(Boolean) ? 'disabled' : ''} title="${esc(`${p.name} · ${heightLabel(p)} · ${positionList(p.positions)}`)}">
-      ${energy(p)}<span class="avatar" aria-hidden="true"><span class="portrait-fallback">${p.name.replace(/·/g, '').slice(-2)}</span></span><span class="player-info"><span class="name">${esc(p.name)}</span><small class="player-height">${heightLabel(p)}</small><small class="player-positions">${positionList(p.positions)}</small>${taken ? '<small>已入队</small>' : ''}</span><span class="tier">${p.tier}</span></button>`;
+      ${energy(p)}<span class="avatar" aria-hidden="true">${playerSilhouette()}</span><span class="player-info"><span class="name">${esc(p.name)}</span><small class="player-height">${heightLabel(p)}</small><small class="player-positions">${positionList(p.positions)}</small>${taken ? '<small>已入队</small>' : ''}</span><span class="tier">${p.tier}</span></button>`;
   }).join('') : '<p class="hint">先确定本局征战年代，再开始抽取球队和球员。</p>';
   document.querySelectorAll('[data-player]').forEach(b => b.onclick = () => {
     try {
@@ -186,6 +187,7 @@ async function connect(create) {
   const code = $('code')?.value.trim().toUpperCase() || '';
   if (!create && !/^[A-F0-9]{8}$/.test(code)) return status('请输入 8 位房间码。');
   if (s.picks.some(Boolean) && !confirm('进入联机会开始新的阵容。房主保留本局年代规则，加入者采用房主规则。继续吗？')) return;
+  const preferredFormation = s.formation;
   busy = true;
   try {
     config = validatePublicConfig({ url: $('url').value, key: $('key').value });
@@ -200,7 +202,7 @@ async function connect(create) {
       if (!host?.started || host.version !== 2) throw Error('房主的年代规则尚未同步，或使用了旧版网页。请双方刷新后创建新房间。');
       targetEra = host.targetEra; excludedEras = host.excludedEras;
     }
-    s = startDraft(freshState(d.mode), targetEra, excludedEras); placement = null; filter = '全部';
+    s = startDraft(freshState(d.mode), targetEra, excludedEras); s.formation = preferredFormation; placement = null; filter = '全部';
     await rpc('fc_submit', { p_code: room, p_state: networkState(s) });
     localStorage.setItem(storage, JSON.stringify(s)); render();
     status(`房间 ${room} · 征战 ${eraById(s.targetEra).label} · 将房间码发给朋友。`);
@@ -236,4 +238,5 @@ async function poll() {
 function showResult(result) {
   modal(`<div class="trophy">🏆</div><h2>联机决赛 · ${eraById(s.targetEra).label}</h2><p>房主 ${Number(result.home)} : ${Number(result.away)} 客队</p><p>${esc(result.penalties || '')}</p><p>双方按位置与年代调整后的首发能力参赛，赛果由服务端统一保存。</p>`);
 }
+$('formation').innerHTML = Object.keys(formations).map(f => `<option value="${f}">${f}</option>`).join('');
 render();

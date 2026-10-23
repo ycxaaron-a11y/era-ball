@@ -1,5 +1,5 @@
 import { chineseNames } from './player-names-zh.js';
-import { playerHeights } from './player-heights.js';
+import { buildHeightProfiles } from './heights.js';
 import { worldCupSquads } from './catalog-world-cup.js';
 import { uclSquads } from './catalog-ucl.js';
 
@@ -15,10 +15,12 @@ export const eraById = id => eras.find(e => e.id === id);
 export const eraForYear = year => eras.find(e => year >= e.from && year <= e.to);
 export const tier = r => r >= 99 ? 'S+' : r >= 94 ? 'S' : r >= 88 ? 'A' : r >= 82 ? 'B' : r >= 75 ? 'C' : 'D';
 export const tierClass = t => `tier-${t === 'S+' ? 'sp' : t.toLowerCase()}`;
-export const pools = [...worldCupSquads, ...uclSquads].map(squad => ({
+const allSquads = [...worldCupSquads, ...uclSquads];
+const heightProfiles = buildHeightProfiles(allSquads.flatMap(squad => squad.players));
+export const pools = allSquads.map(squad => ({
   ...squad, era: String(squad.year), eraId: eraForYear(squad.year).id,
   players: squad.players.map(p => ({
-    ...p, originalName: p.name, name: chineseNames[p.identity] || '球员', heightCm: playerHeights[p.identity] ?? null, id: `${squad.id}:${p.identity}`, pos: p.positions[0], tier: tier(p.rating),
+    ...p, originalName: p.name, name: chineseNames[p.identity] || '球员', ...heightProfiles.get(p.identity), id: `${squad.id}:${p.identity}`, pos: p.positions[0], tier: tier(p.rating),
     profile: p.profile || 'universal', year: squad.year, era: String(squad.year),
     team: squad.team, flag: squad.flag
   }))
@@ -28,15 +30,24 @@ export const formations = {
   '4-3-3': [['LW', 'ST', 'RW'], ['CM', 'CDM', 'CM'], ['LB', 'CB', 'CB', 'RB'], ['GK']],
   '4-4-2': [['ST', 'ST'], ['LM', 'CM', 'CM', 'RM'], ['LB', 'CB', 'CB', 'RB'], ['GK']],
   '4-2-4': [['LW', 'ST', 'ST', 'RW'], ['CM', 'CM'], ['LB', 'CB', 'CB', 'RB'], ['GK']],
-  '3-5-2': [['ST', 'ST'], ['LM', 'CM', 'CDM', 'CM', 'RM'], ['CB', 'CB', 'CB'], ['GK']]
+  '3-5-2': [['ST', 'ST'], ['LM', 'CM', 'CDM', 'CM', 'RM'], ['CB', 'CB', 'CB'], ['GK']],
+  '4-2-3-1': [['ST'], ['LW', 'CAM', 'RW'], ['CDM', 'CDM'], ['LB', 'CB', 'CB', 'RB'], ['GK']],
+  '4-3-1-2': [['ST', 'ST'], ['CAM'], ['CM', 'CDM', 'CM'], ['LB', 'CB', 'CB', 'RB'], ['GK']],
+  '3-4-1-2': [['ST', 'ST'], ['CAM'], ['LWB', 'CM', 'CM', 'RWB'], ['CB', 'CB', 'CB'], ['GK']]
 };
 export const positions = f => formations[f].flat();
+export function formationLayout(f) {
+  const rows = formations[f];
+  return rows.flatMap((row, r) => row.map((pos, c) => ({ pos,
+    x: 100 * (c + 1) / (row.length + 1), y: rows.length === 4 ? 14 + r * 24 : 10 + r * 80 / (rows.length - 1) })));
+}
+
 export function positionPenalty(p, pos) {
   if (!p) return 0;
   const preferred = p.positions || [p.pos];
   if (pos === 'SUB' || preferred.includes(pos)) return 0;
   if (preferred.includes('GK') || pos === 'GK') return 45;
-  const groups = [['LW', 'RW', 'LM', 'RM'], ['ST', 'CAM'], ['CM', 'CDM', 'CAM'], ['LB', 'RB', 'CB']];
+  const groups = [['LW', 'RW', 'LM', 'RM'], ['ST', 'CAM'], ['CM', 'CDM', 'CAM'], ['LB', 'RB', 'CB', 'LWB', 'RWB']];
   return groups.some(g => g.includes(pos) && preferred.some(v => g.includes(v))) ? 4 : 12;
 }
 // Counterfactual adaptation is an editorial game model, not a measured historical fact.
@@ -118,6 +129,7 @@ export function reroll(s, random = Math.random) {
   const next = { ...s, rerolls: s.rerolls - 1 }; next.pool = drawPool(next, random); return next;
 }
 export function hydrateState(saved) {
+  if (saved?.lineupFormation) { saved = { ...saved, formation: saved.lineupFormation }; delete saved.lineupFormation; }
   const fallback = freshState(saved?.mode === 'ucl' ? 'ucl' : 'world_cup');
   if (!saved || saved.version !== 2 || !formations[saved.formation] || !Array.isArray(saved.picks) || saved.picks.length !== 16 || !Number.isInteger(saved.rerolls) || saved.rerolls < 0 || saved.rerolls > 3) return fallback;
   try {
@@ -133,7 +145,10 @@ export function hydrateState(saved) {
 }
 // Existing SQL averages rating; submit effective values so online and local rules agree.
 export function networkState(s) {
-  return { ...s, picks: s.picks.map((p, i) => p ? { ...p, baseRating: p.rating,
+  const legacyFormations = ['4-3-3', '4-4-2', '4-2-4', '3-5-2'];
+  // The deployed RPC validates four legacy formation tags but calculates scores only
+  // from submitted effective ratings. Preserve the actual layout separately.
+  return { ...s, lineupFormation: s.formation, formation: legacyFormations.includes(s.formation) ? s.formation : '4-3-3', picks: s.picks.map((p, i) => p ? { ...p, baseRating: p.rating,
     rating: fit(p, i < 11 ? positions(s.formation)[i] : 'SUB', s.targetEra) } : null) };
 }
 export function season(s, random = Math.random) {

@@ -6,4 +6,4 @@ export const positionNames = Object.freeze({
 });
 export const positionName = code => positionNames[code] || '位置';
 export const positionList = codes => codes.map(positionName).join('／');
-export const heightLabel = p => Number.isInteger(p?.heightCm) ? `${p.heightCm} 厘米` : '身高待补充';
+export const heightLabel = p => Number.isInteger(p?.heightCm) ? `${p.heightCm} 厘米` : '—';

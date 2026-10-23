@@ -166,15 +166,47 @@ dialog label { line-height: 1.7; }
 .slot-preview .preview-player { display: block; opacity: .58; filter: blur(.35px); }
 .slot-preview em { position: relative; z-index: 3; color: #f3ffd3 !important; text-shadow: 0 2px 6px #10230b; font-size: 22px; }
 .slot-preview .confirm-label { color: #f0ffcd; font-weight: 700; font-size: 9px; margin-top: 3px; }
-/* S+ gets a continuous electric rim, stronger aura, and brighter staggered lightning. */
-@property --energy-angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
-.player-card.tier-sp, .slot.tier-sp { border: 2px solid #dfabff; background-color: #35203c; box-shadow: inset 0 0 22px #be43ff40, 0 0 12px #bd46ff9c, 0 0 23px #a531ff55; animation: splus-aura 3s ease-in-out infinite; }
-.tier-sp .splus-energy { position: absolute; z-index: 2; inset: -1px; border-radius: inherit; padding: 2px; pointer-events: none; background: conic-gradient(from var(--energy-angle), #a331ff 0deg, #dd9dff 35deg, #fff7ff 46deg, #ba25ff 61deg, #8c31cf 140deg, #f3c6ff 195deg, #fff 208deg, #ac31f3 222deg, #a331ff 360deg); mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); mask-composite: exclude; animation: splus-rim 3s linear infinite; }
-.player-card.tier-sp::before, .slot.tier-sp::before, .player-card.tier-sp::after, .slot.tier-sp::after { height: 12px; left: 0; right: 0; opacity: .9; filter: drop-shadow(0 0 3px #fff0ff) drop-shadow(0 0 7px #b428ff); animation: splus-lightning 2.4s ease-in-out infinite; }
-.player-card.tier-sp::after, .slot.tier-sp::after { animation-delay: 1.2s; }
+/* S+ lightning is drawn as branching SVG bolts, with brief local recoil. */
+.player-card.tier-sp, .slot.tier-sp { border: 2px solid #dfabff; background-color: #35203c; box-shadow: inset 0 0 22px #be43ff40, 0 0 12px #bd46ff9c, 0 0 23px #a531ff55; animation: splus-aura 3s ease-in-out infinite, splus-recoil 3s linear infinite; }
+.player-card.tier-sp::before, .player-card.tier-sp::after, .slot.tier-sp::before, .slot.tier-sp::after { content: none; }
+.splus-thunder { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; z-index: 2; pointer-events: none; fill: none; }
+.splus-thunder path { vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: miter; }
+.bolt { transform-box: fill-box; transform-origin: center; stroke: #fff2ff; stroke-width: 1.7; filter: drop-shadow(0 0 2px #e7a6ff) drop-shadow(0 0 5px #b226ff); }
+.bolt .branch { stroke: #de8aff; stroke-width: 1.15; }
+.bolt-a { opacity: .6; animation: thunder-a 3s steps(1, end) infinite; }
+.bolt-b { opacity: 0; animation: thunder-b 3s steps(1, end) infinite; }
+@keyframes thunder-a {
+  0%,61%,100% { opacity: .12; transform: translate(0,0); }
+  63% { opacity: 1; transform: translate(-1px, .5px); }
+  66% { opacity: .65; transform: translate(1px, -1px); }
+  69% { opacity: 1; transform: translate(-.5px, 1px); }
+  72% { opacity: .8; transform: translate(.5px, -.5px); }
+  76% { opacity: 1; transform: translate(0,0); }
+  81% { opacity: .2; }
+}
+@keyframes thunder-b {
+  0%,65%,100% { opacity: 0; transform: translate(0,0); }
+  67% { opacity: 1; transform: translate(1px, 0); }
+  70% { opacity: .25; transform: translate(-1px, .5px); }
+  73% { opacity: 1; transform: translate(.5px, -.5px); }
+  77% { opacity: .5; transform: translate(0,0); }
+  82% { opacity: 0; }
+}
+@keyframes splus-recoil {
+  0%,62%,82%,100% { translate: 0 0; }
+  64% { translate: -2px 1px; }
+  67% { translate: 2px -1px; }
+  70% { translate: -1.5px -1px; }
+  73% { translate: 1.5px 1px; }
+  76% { translate: -.5px 0; }
+  79% { translate: 0 0; }
+}
+@keyframes splus-aura { 0%,61%,100% { box-shadow: inset 0 0 18px #c038ff36, 0 0 9px #cb6bff94, 0 0 17px #a52bff55; } 65%,76% { box-shadow: inset 0 0 25px #d36bff55, 0 0 17px #e1a0ffc2, 0 0 30px #a52bff85; } }
+.player-card:disabled .bolt { animation: none; opacity: .25; }
 .player-card.tier-sp:disabled { animation: none; }
-.player-card:disabled .splus-energy { animation: none; }
-@keyframes splus-rim { to { --energy-angle: 360deg; } }
-@keyframes splus-aura { 0%,100% { box-shadow: inset 0 0 18px #c038ff36, 0 0 9px #cb6bff94, 0 0 17px #a52bff55; } 50% { box-shadow: inset 0 0 25px #d36bff55, 0 0 15px #e1a0ffc2, 0 0 29px #a52bff85; } }
-@keyframes splus-lightning { 0%,100% { opacity: .55; } 34% { opacity: .7; } 45%,55% { opacity: 1; } 67% { opacity: .6; } }
+.avatar { background: linear-gradient(155deg, #b9c4ad, #879a7b); border: 1px solid #cbd5c064; }
+.player-silhouette { display: block; width: 100%; height: 100%; fill: #090d0b; }
+.pitch.five-lines { height: 640px; }
+@media (max-width: 850px) { .pitch.five-lines { height: 640px; } }
 @media (max-width: 430px) { .slot { min-height: 100px; } .slot b { font-size: 10px; } .slot .player-height { font-size: 8px; } #placement-status { align-items: flex-start; } .slot-preview .confirm-label { font-size: 8px; } }
+@media (prefers-reduced-motion: reduce) { .bolt-a { opacity: .65; } .bolt-b { opacity: 0; } .player-card.tier-sp, .slot.tier-sp { translate: none; } }

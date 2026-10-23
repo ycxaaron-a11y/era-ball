@@ -15,14 +15,16 @@ test('every catalog player has a Chinese display name and position labels use Ch
   for (const code of ['ST','LW','RW','LM','RM','CAM','CDM','SS','LB','RB','CB','LWB','RWB','GK','SUB']) assert.match(positionName(code), /\p{Script=Han}/u);
   assert.ok(Object.keys(positionNames).length >= 15);
 });
-test('known heights are in centimetres and missing data is labelled rather than fabricated', () => {
-  const players = pools.flatMap(p => p.players), known = players.filter(p => p.heightCm !== null);
+test('heights are complete and the interface displays clean centimetre values', () => {
+  const players = pools.flatMap(p => p.players), known = players.filter(p => !p.heightEstimated);
   assert.ok(known.length > 450);
   assert.ok(known.every(p => Number.isInteger(p.heightCm) && p.heightCm >= 150 && p.heightCm <= 210));
   const messi = players.find(p => p.identity === 'lionel-messi');
   assert.equal(heightLabel(messi), '170 厘米');
-  assert.equal(heightLabel({heightCm:null}), '身高待补充');
-  assert.equal(heightLabel({}), '身高待补充');
+  assert.ok(players.every(p => Number.isInteger(p.heightCm)));
+  assert.match(heightLabel(players.find(p => p.heightEstimated)), /^\d+ 厘米$/);
+  assert.ok(players.some(p => p.heightEstimated));
+  assert.equal(heightLabel({}), '—');
 });
 test('selecting and previewing never modifies draft, rerolls, pool or network payload', () => {
   const state = startDraft(freshState(), '2020s', [], () => 0);
