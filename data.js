@@ -1,3 +1,5 @@
+import { chineseNames } from './player-names-zh.js';
+import { playerHeights } from './player-heights.js';
 import { worldCupSquads } from './catalog-world-cup.js';
 import { uclSquads } from './catalog-ucl.js';
 
@@ -16,7 +18,7 @@ export const tierClass = t => `tier-${t === 'S+' ? 'sp' : t.toLowerCase()}`;
 export const pools = [...worldCupSquads, ...uclSquads].map(squad => ({
   ...squad, era: String(squad.year), eraId: eraForYear(squad.year).id,
   players: squad.players.map(p => ({
-    ...p, id: `${squad.id}:${p.identity}`, pos: p.positions[0], tier: tier(p.rating),
+    ...p, originalName: p.name, name: chineseNames[p.identity] || '球员', heightCm: playerHeights[p.identity] ?? null, id: `${squad.id}:${p.identity}`, pos: p.positions[0], tier: tier(p.rating),
     profile: p.profile || 'universal', year: squad.year, era: String(squad.year),
     team: squad.team, flag: squad.flag
   }))

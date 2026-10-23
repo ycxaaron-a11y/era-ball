@@ -152,3 +152,29 @@ dialog label { line-height: 1.7; }
 .era-option { flex-wrap: wrap; }
 .era-option small { display: block; width: 100%; padding-left: 24px; font-size: 9px; color: #a8baa0; }
 #setup-error { color: #ffbe85; }
+/* Player-first drafting. A preview is visible on the field but never counts as a pick. */
+#placement-status { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 50px; padding: 10px 0 13px; color: #d5e9bb; font-size: 12px; line-height: 1.7; }
+#placement-status button { flex-shrink: 0; padding: 6px 9px; font-size: 11px; }
+.player-card.is-chosen { outline: 2px solid #d2ff92; outline-offset: 2px; background: linear-gradient(145deg, #3d5132, #263b28); }
+.player-info, .avatar, .tier { position: relative; z-index: 1; }
+.player-card .player-height { color: #d7e1ce; font-size: 11px; }
+.slot { min-height: 100px; }
+.slot .player-height { color: #d5e1cd; font-size: 9px; margin: 2px 0; }
+.slot .placed-player, .slot .preview-player { position: relative; z-index: 1; }
+.slot.can-place:not(.slot-preview) { border-color: #d5efac; border-style: dashed; background-color: #2c5426c9; }
+.slot.slot-preview { background: repeating-linear-gradient(135deg, #23402b9c 0 7px, #314d2f80 7px 14px); border-style: dashed; backdrop-filter: blur(2px); }
+.slot-preview .preview-player { display: block; opacity: .58; filter: blur(.35px); }
+.slot-preview em { position: relative; z-index: 3; color: #f3ffd3 !important; text-shadow: 0 2px 6px #10230b; font-size: 22px; }
+.slot-preview .confirm-label { color: #f0ffcd; font-weight: 700; font-size: 9px; margin-top: 3px; }
+/* S+ gets a continuous electric rim, stronger aura, and brighter staggered lightning. */
+@property --energy-angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+.player-card.tier-sp, .slot.tier-sp { border: 2px solid #dfabff; background-color: #35203c; box-shadow: inset 0 0 22px #be43ff40, 0 0 12px #bd46ff9c, 0 0 23px #a531ff55; animation: splus-aura 3s ease-in-out infinite; }
+.tier-sp .splus-energy { position: absolute; z-index: 2; inset: -1px; border-radius: inherit; padding: 2px; pointer-events: none; background: conic-gradient(from var(--energy-angle), #a331ff 0deg, #dd9dff 35deg, #fff7ff 46deg, #ba25ff 61deg, #8c31cf 140deg, #f3c6ff 195deg, #fff 208deg, #ac31f3 222deg, #a331ff 360deg); mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); mask-composite: exclude; animation: splus-rim 3s linear infinite; }
+.player-card.tier-sp::before, .slot.tier-sp::before, .player-card.tier-sp::after, .slot.tier-sp::after { height: 12px; left: 0; right: 0; opacity: .9; filter: drop-shadow(0 0 3px #fff0ff) drop-shadow(0 0 7px #b428ff); animation: splus-lightning 2.4s ease-in-out infinite; }
+.player-card.tier-sp::after, .slot.tier-sp::after { animation-delay: 1.2s; }
+.player-card.tier-sp:disabled { animation: none; }
+.player-card:disabled .splus-energy { animation: none; }
+@keyframes splus-rim { to { --energy-angle: 360deg; } }
+@keyframes splus-aura { 0%,100% { box-shadow: inset 0 0 18px #c038ff36, 0 0 9px #cb6bff94, 0 0 17px #a52bff55; } 50% { box-shadow: inset 0 0 25px #d36bff55, 0 0 15px #e1a0ffc2, 0 0 29px #a52bff85; } }
+@keyframes splus-lightning { 0%,100% { opacity: .55; } 34% { opacity: .7; } 45%,55% { opacity: 1; } 67% { opacity: .6; } }
+@media (max-width: 430px) { .slot { min-height: 100px; } .slot b { font-size: 10px; } .slot .player-height { font-size: 8px; } #placement-status { align-items: flex-start; } .slot-preview .confirm-label { font-size: 8px; } }
