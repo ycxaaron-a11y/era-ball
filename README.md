@@ -33,15 +33,15 @@ npm run dev
 ## 已有网站如何更新
 本仓库的 `main` 已连接 Netlify：正常推送代码后，由 Netlify 自动构建并更新同一个网址。
 `netlify.toml` 已指定发布根目录 `.`，Build command 留空，不需要设置服务器或新增环境变量。
-本次 v3 联机升级需要在原 Supabase 项目额外执行一次 [upgrade-spin-locks.sql](supabase/upgrade-spin-locks.sql)。无需重建项目、仓库或网站。网页检测到旧协议时会提供“复制升级 SQL”按钮；复制后粘贴到 Supabase SQL Editor 并运行，再刷新双方网页、新建房间。旧房间保留旧规则，不能与新版房间混用。
+本次 v4 赛季升级在原 Supabase 项目执行一次 [合并升级 SQL](supabase/upgrade-all-v4.sql)，已经包含上次 Spin / 抢选锁 / 羁绊升级。上次执行过也可安全重跑，无需重建项目、仓库或网站。网页检测到缺少赛季接口时提供“复制升级 SQL”按钮。详细步骤见 [升级操作说明](docs/upgrade-v4.md)。
 新版使用独立的 `era-fc-v2` 浏览器存档；旧版存档不会删除，但不会导入新选秀。更新后双方刷新网页并创建新房间。
 
 ## 新项目首次配置联机
-1. 在自己的 Supabase SQL Editor 先执行 `supabase/multiplayer.sql`，再执行 `supabase/upgrade-spin-locks.sql`（新增 `fc_*` 表，不覆盖旧的 `teams/players` 表）。
+1. 在自己的 Supabase SQL Editor 先执行 `supabase/multiplayer.sql`，再执行 `supabase/upgrade-all-v4.sql`（新增 `fc_*` 表，不覆盖旧的 `teams/players` 表）。
 2. Authentication > Providers 中开启 Anonymous Sign-Ins。
 3. `config.js` 仅存放可公开的项目地址与 publishable/anon key；也可在网页联机面板展开连接设置。不要填 service_role 或 secret key。
 4. 房主先锁定赛前设置，然后创建房间。另一台设备或独立浏览器通过房间码加入，自动采用房主的赛事模式、征战年代和排除年代。
-5. 双方独立选满 16 人后阵容锁定。服务端只生成一次共同决赛结果。每 1.5 秒 HTTP 轮询同步，无需开启 Realtime publication。
+5. 双方独立选满 16 人后阵容锁定，进入同一届杯赛。服务器固定一次赛季随机种子并保存共同轮次；客户端依据相同种子和服务端校验后的阵容计算比赛，双方获得相同赛程和赛果。每 1.5 秒 HTTP 轮询同步，无需开启 Realtime publication。
 
 联机与本地都计算位置、年代和羁绊后的首发能力。13 组历史搭档同时入队（含替补）后双方各 +2，多组叠加每人最多 +3、总能力最多 100；达到阈值会更新评级与边框。资料证据与游戏规则详见 [羁绊研究记录](docs/chemistry-research.md)。
 
@@ -55,3 +55,13 @@ npm run dev
 新增 `npm run build:database` 根据目录生成升级 SQL。可选数据库集成检查：安装 PGlite 后设置 `ERA_PGLITE_MODULE` 为其模块绝对路径，运行 `npm run test:database`。浏览器与本地 PostgreSQL 联合验证包括双人抢同版本、跨年代同身份、完整 16 人及共同决赛。真实 Supabase v3 验证需先执行升级 SQL；本地验证不代表托管数据库已升级。
 
 可选浏览器检查：先启动 3000 端口服务，设置 `ERA_PLAYWRIGHT_MODULE`（Playwright 模块路径）及 `ERA_PGLITE_MODULE`，执行 `node tests/browser-protocol.mjs`；可用 `ERA_CHROMIUM` 指定 Chromium。测试把请求接到本地 PostgreSQL 测试库，不访问托管数据库。
+
+## v4 逐轮赛季
+
+入口“进入冠军赛季”打开独立页面 `#season`，返回阵容后可继续。世界杯和欧冠均采用自定义 16 队杯赛：四组四队，单循环三轮、小组前二晋级、四分之一决赛、半决赛、决赛，淘汰赛单场决胜。不是特定历史年份的官方赛程，不含季前赛或主客场两回合。
+
+每轮公布全体比赛比分，点击战报展开进球分钟、进球者、助攻者、全场 MVP 与双方 MVP。积分榜、射手榜、助攻榜、MVP 次数及场均表现只统计已经揭晓的比赛；最终展示冠军、赛季 MVP、金靴及助攻王。淘汰赛平局以点球决胜，点球大战不计入射手榜。积分同分按净胜球、进球数、固定签位排序。个人表现与评分属于游戏模拟，替补暂不自动上场。
+
+联机房主在 A 组上半区，客队在 C 组下半区，双方晋级才可能在决赛相遇；提前出局仍可继续观赛。任何一方推进均同步给对方；同一轮同时点击由服务器行锁及期望轮次合并，不会跳两轮。服务器保存种子和进度，赛果在浏览器用固定算法重现，尚非完整的服务端赛事引擎。单人赛季保存在当前浏览器；联机赛季在当前标签页刷新后通过房间身份恢复。
+
+验证：`npm test` 包含 40 个固定种子下的分区、轮次、赛果一致性及进球统计校验；`npm run test:database` 验证合并 SQL、成员权限、共享种子、轮次并发、完成上限、重复升级不丢进度。可选 `node tests/browser-season.mjs`（同浏览器依赖环境变量）验证手机完整六轮、战报和存档，以及双浏览器同步、重复点击与刷新恢复。

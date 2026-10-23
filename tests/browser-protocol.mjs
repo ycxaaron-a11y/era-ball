@@ -10,7 +10,7 @@ async function bridge(route){
  try{
   if(url.pathname==='/auth/v1/signup'){const uid=randomUUID();await addUser(uid);return route.fulfill({json:{access_token:uid,refresh_token:uid,expires_at:Math.floor(Date.now()/1000)+3600}})}
   const uid=(await req.allHeaders()).authorization?.replace('Bearer ','');const name=url.pathname.split('/').at(-1);
-  const keys={fc_protocol_v3:[],fc_connect_v3:['p_code','p_mode'],fc_read_v3:['p_code'],fc_submit_v3:['p_code','p_state','p_revision','p_request_id']}[name];
+  const keys={fc_protocol_v3:[],fc_season_v4:['p_code','p_expected'],fc_connect_v3:['p_code','p_mode'],fc_read_v3:['p_code'],fc_submit_v3:['p_code','p_state','p_revision','p_request_id']}[name];
   if(!keys)throw Error('Unknown test RPC');
   const result=await rpc(uid,name,keys.map(k=>body[k]));
   if(name==='fc_submit_v3')submitted.push({uid,count:body.p_state.picks.filter(Boolean).length});
@@ -62,9 +62,9 @@ try{
    assert.ok(attempt<7,'Expected to find another free version');
   }
  }
- for(const p of pages)await p.waitForFunction(()=>document.querySelector('#modal-body h2')?.textContent.includes('联机决赛'),{},{timeout:15000});
- assert.equal(await host.locator('#modal-body').textContent(),await guest.locator('#modal-body').textContent());assert.deepEqual(errors,[]);
- console.log('PASS browsers+SQL: mobile+desktop full16 drafts, atomic confirmed picks, shared persistent final, no JS errors');
+ for(const p of pages)await p.waitForSelector('#season-page',{timeout:15000});
+ assert.equal(await host.locator('.groups-grid').textContent(),await guest.locator('.groups-grid').textContent());assert.deepEqual(errors,[]);
+ console.log('PASS browsers+SQL: mobile+desktop full16 drafts, atomic confirmed picks, shared seeded season entry, no JS errors');
  // Independent local chemistry UI: force a Madrid-2017 round using the actual Spin eligibility settings.
  const local=await browser.newContext({viewport:{width:1440,height:1100},reducedMotion:'reduce'});await local.addInitScript(()=>Math.random=()=>0);const p=await local.newPage();p.on('pageerror',e=>errors.push(e.message));
  await p.goto('http://127.0.0.1:3000/');await p.click('#ucl');for(const box of await p.locator('input[name=excluded]').all())if(await box.inputValue()!=='2010s-b')await box.check();await p.click('#start-draft');

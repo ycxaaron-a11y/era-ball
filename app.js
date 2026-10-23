@@ -1,9 +1,11 @@
+import {createTournament,draftTeam} from './tournament.js';
+import {renderSeason,closeSeason,seasonVisible} from './season-view.js';
 import { activeChemistry, chemistryBonus, chemistryPairs } from './chemistry.js';
 import { playerSilhouette, splusLightning, placementImpact } from './effects.js';
 import { positionName, positionList, heightLabel } from './display.js';
 import { candidateFor, selectCandidate, placeCandidate } from './placement.js';
 import { cloudConfig } from './config.js';
-import { pools, poolById, eras, eraById, positions, formations, fit, strength, season,
+import { pools, poolById, eras, eraById, positions, formations, fit, strength,
   playerAbility, playerTier, availablePools, spinDraft, formationLayout, tierClass, eraAdjustment, positionPenalty, freshState, hydrateState, startDraft, reroll, networkState } from './data.js';
 import { request, validatePublicConfig } from './multiplayer.js';
 
@@ -79,7 +81,7 @@ function render() {
   $('spin').disabled = !s.started || s.drawPhase !== 'awaiting' || uiBusy() || s.picks.every(Boolean);
   $('roll').disabled = !s.started || s.drawPhase !== 'ready' || s.rerolls === 0 || uiBusy() || s.picks.every(Boolean);
   $('simulate').disabled = s.picks.some(p => !p) || uiBusy();
-  $('simulate').textContent = room ? '查看联机决赛 ↗' : '模拟赛季 ↗';
+  $('simulate').textContent = room ? '进入联机赛季 ↗' : '进入冠军赛季 ↗';
   $('pool-count').textContent = pool && s.drawPhase === 'ready' && !spinning ? `${pool.players.length} 位球员` : `${pools.filter(p => p.mode === s.mode).length} 支年代球队`;
   $('era-settings').innerHTML = `<div class="setup-summary"><span class="eyebrow">MATCH ERA</span><strong>${s.started ? `${eraById(s.targetEra).label} · 已锁定` : '赛前选择征战年代'}</strong><span>${s.started ? `排除 ${s.excludedEras.length} 个年代 · ${12 - s.excludedEras.length} 个年代可抽选` : '12 个年代 · 可排除不想抽到的年代'}</span></div><button id="era-open">${s.started ? '查看本局设置' : '设置并开始选秀 →'}</button>`;
   $('era-open').onclick = setupUI; $('era-open').disabled=uiBusy();
@@ -157,7 +159,7 @@ function playerDetail(i) {
   const p = s.picks[i], pos = slots()[i];
   modal(`<h2>${esc(p.name)} <span class="tier">${playerTier(s,p)}${playerTier(s,p)!==p.tier?`（${p.tier} ↑）`:''}</span></h2><p>${esc(p.team)} · ${p.era} · ${heightLabel(p)} · 完全适应位置 ${positionList(p.positions)}</p>
     <div class="rating-details">${esc(adjustments(p, pos))}</div><p class="profile-note">${esc(eraAdjustment(p, s.targetEra).reason)}。跨年代模拟属于游戏设定，并非对球员真实表现的预测。</p>
-    ${onlineLocked() ? '<p>阵容已提交决赛，本局无法再调整。</p>' : `<label for="move-slot">调整位置（有球员时交换）</label><select id="move-slot">${slots().map((v, n) => `<option value="${n}" ${n === i ? 'selected' : ''}>${n + 1}. ${positionName(v)} ${s.picks[n] ? esc(s.picks[n].name) : '空位'}</option>`).join('')}</select><div class="setup-actions"><button id="move-player" class="primary">确认调整</button><button id="remove-player">移出阵容</button></div>`}`);
+    ${onlineLocked() ? '<p>阵容已提交赛季，本局无法再调整。</p>' : `<label for="move-slot">调整位置（有球员时交换）</label><select id="move-slot">${slots().map((v, n) => `<option value="${n}" ${n === i ? 'selected' : ''}>${n + 1}. ${positionName(v)} ${s.picks[n] ? esc(s.picks[n].name) : '空位'}</option>`).join('')}</select><div class="setup-actions"><button id="move-player" class="primary">确认调整</button><button id="remove-player">移出阵容</button></div>`}`);
   if (!onlineLocked()) {
     $('move-player').onclick = () => { const to=+$('move-slot').value, next={...s,picks:[...s.picks]}; [next.picks[i],next.picks[to]]=[next.picks[to],next.picks[i]]; $('modal').close(); commitRoster(next); };
     $('remove-player').onclick = () => { const next={...s,picks:[...s.picks]}; next.picks[i]=null; if(next.drawPhase==='complete')next.drawPhase='awaiting'; $('modal').close(); commitRoster(next); };
@@ -180,15 +182,48 @@ $('reset').onclick = () => reset();
 $('rules').onclick = () => modal(`<h2>更多年代，更多选择</h2><p>收录 ${pools.length} 支年代球队、${pools.reduce((n, p) => n + p.players.length, 0)} 条球员年代记录，覆盖 12 个年代区间。球员库为精选真实阵容，非完整官方注册名单；评分参考该赛季表现，属于人工估值。</p>
   <div class="tier-legend">${[['S+', '99–100'], ['S', '94–98'], ['A', '88–93'], ['B', '82–87'], ['C', '75–81'], ['D', '1–74']].map(([t, r]) => `<span class="${tierClass(t)}">${t} ${r}</span>`).join('')}</div><p>每支来源球队最多 3 名 S／S+ 球员；玩家跨球队组建的梦之队不受该数量限制。候选卡只显示姓名、身高、位置和评级。先点球员，再点空位查看半透明试位与实际能力，第二次点同一空位才正式签下。试位不会消耗选人或重转次数，也不会提前提交联机。每轮先按 Spin，停下后才显示候选；确认入队后等待下一次手动 Spin。</p>
   <p>球员的多个首选位置全部不扣分；邻近位置扣 4 分，其他外场位置扣 12 分，门将错位扣 45 分。年代调整另外扣 0–3 分。点击阵中球员查看计算、换位或移除。</p>
-  <p>赛前确定征战年代及排除年代，开局后锁定。本地赛季为简化 6 轮联赛、半决赛与决赛；替补暂不自动换人。联机双方共享年代规则，签满 16 人后自动提交并锁定阵容；服务端生成双方共同的决赛结果。</p>
+  <p>赛前确定征战年代及排除年代，开局后锁定。赛季采用自定义 16 队杯赛：四组各四队，小组赛三轮后前二晋级，随后四分之一决赛、半决赛、决赛，均单场决胜。替补暂不自动换人。联机双方分别位于 A、C 组不同半区，只有都晋级才能在决赛会师；共同保存赛季种子与轮次。</p>
   <p>角色适配参考公开历史比赛位置资料；跨年代结果无法客观测量。<a href="docs/era-research.md" target="_blank" rel="noopener">研究来源与建模说明 ↗</a></p>`);
-$('simulate').onclick = () => {
-  if (s.picks.some(p => !p)) return;
-  if (room) { if (remote?.result) showResult(remote.result); else onlineUI(); return; }
-  const results = season(s), semi = results[6];
-  const qualified = semi.home > semi.away || semi.penalties === '点球胜', played = qualified ? results : results.slice(0, 7);
-  const last = played.at(-1), win = qualified && (last.home > last.away || last.penalties === '点球胜');
-  modal(`<div class="trophy">${win ? '🏆' : '⚽'}</div><h2>${win ? '你的梦之队，登上巅峰！' : qualified ? '决赛惜败，传奇仍在继续' : '半决赛止步，再战下个赛季'}</h2><p>征战 ${eraById(s.targetEra).label} · 适配评分 ${strength(s).toFixed(1)} · 实力与随机因素共同决定赛果</p>${played.map(m => `<div class="match"><span>${m.stage} · 对手 ${m.opponent}</span><b>${m.home} : ${m.away} ${m.penalties || ''}</b></div>`).join('')}`);
+let tournament=null, seasonCursor=0, seasonBusy=false, seasonRoom=null;
+const localSeasonKey='era-fc-season-v4';
+const draftFingerprint=()=>JSON.stringify({mode:s.mode,target:s.targetEra,formation:s.formation,picks:networkState(s).picks});
+function paintSeason(error=''){
+ if(!tournament)return;
+ if($('modal').open)$('modal').close();
+ renderSeason(tournament,seasonCursor,{online:Boolean(seasonRoom),pending:seasonBusy,error,onNext:advanceSeason});
+}
+function openLocalSeason(){
+ const fingerprint=draftFingerprint(),stored=read(localSeasonKey,null);
+ if(stored?.fingerprint===fingerprint&&stored?.version===4){tournament=stored.tournament;seasonCursor=Math.max(0,Math.min(6,stored.cursor));}
+ else{tournament=createTournament({mode:s.mode,seed:crypto.getRandomValues(new Uint32Array(1))[0],humans:[draftTeam(s,'host','我的梦之队')]});seasonCursor=0;}
+ seasonRoom=null;persistSeason();paintSeason();
+}
+function persistSeason(){if(!seasonRoom)localStorage.setItem(localSeasonKey,JSON.stringify({version:4,fingerprint:draftFingerprint(),tournament,cursor:seasonCursor}));}
+async function syncOnlineSeason(open=false){
+ const code=room;if(!code)return;
+ const state=await rpc('fc_season_v4',{p_code:code,p_expected:null});if(room!==code)return;
+ if(seasonRoom!==code||tournament?.seed!==state.seed){
+  const members=remote.members.filter(m=>m.state).sort((a,b)=>Number(b.host)-Number(a.host));
+  if(members.length!==2)return;
+  tournament=createTournament({mode:s.mode,seed:state.seed,humans:members.map(m=>draftTeam(m.state,m.host?'host':'guest',m.host?'房主梦之队':'客队梦之队',true))});seasonCursor=0;seasonRoom=code;sessionStorage.setItem('era-fc-season-room-v4',code);
+ }
+ const changed=seasonCursor!==state.cursor;seasonCursor=Math.max(seasonCursor,state.cursor);
+ if(open||(changed&&seasonVisible()))paintSeason();
+}
+async function advanceSeason(){
+ if(seasonBusy||seasonCursor>=6)return;seasonBusy=true;let failure='';paintSeason();
+ try{
+  if(seasonRoom){const code=seasonRoom,data=await rpc('fc_season_v4',{p_code:code,p_expected:seasonCursor});if(room!==code)return;seasonCursor=Math.max(seasonCursor,data.cursor);}
+  else{seasonCursor++;persistSeason();}
+  paintSeason();
+ }catch(e){failure=readableError(e);}
+ finally{seasonBusy=false;if(seasonVisible())paintSeason(failure);}
+}
+$('simulate').onclick=async()=>{
+ if(s.picks.some(p=>!p))return;
+ if(!room){openLocalSeason();return;}
+ if(!remote?.result){onlineUI();return;}
+ try{await syncOnlineSeason(true);}catch(e){onlineUI();status('赛季功能需要一次数据库升级，请复制合并升级 SQL。');showUpgradeHelp();}
 };
 
 let authPending = null, sessionExpired = false;
@@ -217,7 +252,7 @@ async function auth() {
 }
 async function rpc(name, body) { await auth(); return request(config, `/rest/v1/rpc/${name}`, body, authSession.access_token); }
 function onlineUI() {
-  modal(`<h2>联机 · 和朋友争夺冠军</h2><p>房主先完成赛前设置，双方将使用同样的征战年代与排除年代。选满 16 人后阵容锁定，自动进入共同决赛。</p>
+  modal(`<h2>联机 · 和朋友争夺冠军</h2><p>房主先完成赛前设置，双方将使用同样的征战年代与排除年代。选满 16 人后阵容锁定，自动进入共同杯赛，双方分属不同半区。</p>
     ${room ? '' : '<input id="code" aria-label="房间码" placeholder="朋友的 8 位房间码" maxlength="8">'}
     <div class="setup-actions">${room ? '<button id="leave">离开房间</button>' : '<button class="primary" id="create">创建房间</button><button id="join">加入房间</button>'}</div>
     <p id="status" role="status">${esc(roomMessage || '尚未连接，可以先玩本地选秀。')}</p><details><summary>连接设置</summary><label for="url">项目 URL</label><input id="url" value="${esc(config.url)}" ${room ? 'disabled' : ''}><label for="key">Publishable / anon public key</label><input id="key" value="${esc(config.key)}" ${room ? 'disabled' : ''}></details>
@@ -227,6 +262,7 @@ function onlineUI() {
 }
 $('online').onclick = onlineUI;
 function disconnect() {
+  sessionStorage.removeItem('era-fc-season-room-v4');closeSeason();seasonRoom=null;
   placement = null; roomGeneration++; spinToken++; spinning=false; spinFrame=null; clearInterval(timer); timer = null; room = null; remote = null; lockedIds=new Set(); shownResult = false;
   sessionExpired = false; status(''); render();
 }
@@ -302,17 +338,20 @@ async function poll() {
     status(lost?'你正在试位的版本已被对手锁定，请改选。':`房间 ${room} · ${d.members.length}/2 人已加入 · ${ready}/2 阵容完成 · 征战 ${eraById(s.targetEra).label}`);
     if(s.drawPhase==='ready'&&!spinning){const pool=poolById(s.pool);if(pool&&!pool.players.some(p=>!lockedIds.has(p.id)&&!s.picks.some(x=>x?.identity===p.identity))){s={...s,drawPhase:'awaiting'};placement=null;save();status('本组可选版本已全部锁定，请免费 Spin 下一组。');}}
     if(locksChanged||lost)render();
-    if(d.result&&!shownResult){shownResult=true;showResult(d.result);}
+    if(d.result){const open=!shownResult;shownResult=true;try{await syncOnlineSeason(open);}catch(e){if(open){onlineUI();status('联机赛季需要执行一次合并升级 SQL。');showUpgradeHelp();}}}
   }catch(e){if(generation===roomGeneration)status(`房间 ${room} · 暂未同步：${readableError(e)}`);}
   finally{polling=false;}
 }
 function showUpgradeHelp(){
   if(!$('status'))return;
-  const p=document.createElement('p');p.className='hint';p.innerHTML='<a href="supabase/upgrade-spin-locks.sql" target="_blank" rel="noopener">打开一次性升级 SQL</a> · <button id="copy-upgrade">复制升级 SQL</button>，粘贴到 Supabase SQL Editor 后运行，再重新连接。';$('status').after(p);
-  $('copy-upgrade').onclick=async()=>{try{const r=await fetch('supabase/upgrade-spin-locks.sql');if(!r.ok)throw Error();await navigator.clipboard.writeText(await r.text());$('copy-upgrade').textContent='已复制';}catch{$('copy-upgrade').textContent='请打开链接复制原文';}};
-}
-function showResult(result) {
-  modal(`<div class="trophy">🏆</div><h2>联机决赛 · ${eraById(s.targetEra).label}</h2><p>房主 ${Number(result.home)} : ${Number(result.away)} 客队</p><p>${esc(result.penalties || '')}</p><p>双方按位置与年代调整后的首发能力参赛，赛果由服务端统一保存。</p>`);
+  const p=document.createElement('p');p.className='hint';p.innerHTML='<a href="supabase/upgrade-all-v4.sql" target="_blank" rel="noopener">打开合并升级 SQL（含上次更新）</a> · <button id="copy-upgrade">复制升级 SQL</button>，粘贴到 Supabase SQL Editor 后运行，再重新连接。';$('status').after(p);
+  $('copy-upgrade').onclick=async()=>{try{const r=await fetch('supabase/upgrade-all-v4.sql');if(!r.ok)throw Error();await navigator.clipboard.writeText(await r.text());$('copy-upgrade').textContent='已复制';}catch{$('copy-upgrade').textContent='请打开链接复制原文';}};
 }
 $('formation').innerHTML = Object.keys(formations).map(f => `<option value="${f}">${f}</option>`).join('');
 render();
+
+if(location.hash==='#season'&&s.picks.every(Boolean)){
+ const resume=sessionStorage.getItem('era-fc-season-room-v4');
+ if(resume){(async()=>{try{const d=await rpc('fc_read_v3',{p_code:resume});room=resume;roomGeneration++;remote=d;const mine=d.members.find(m=>m.is_self);s=hydrateState(mine.state);serverRevision=mine.revision;shownResult=true;save();await syncOnlineSeason(true);timer=setInterval(poll,1500);}catch(e){closeSeason();notify('恢复联机赛季失败，请检查网络后刷新。'+readableError(e));}})();}
+ else{try{openLocalSeason();}catch{closeSeason();}}
+}

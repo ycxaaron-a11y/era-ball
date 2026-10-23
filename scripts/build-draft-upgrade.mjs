@@ -11,3 +11,6 @@ const legacy = original.slice(original.indexOf('create or replace function publi
 const template=readFileSync(new URL('../supabase/upgrade-spin-locks.template.sql',import.meta.url),'utf8');
 writeFileSync(new URL('../supabase/upgrade-spin-locks.sql',import.meta.url),template.replace('-- @CATALOG@',()=>catalog).replace('-- @LEGACY_SUBMIT@',()=>legacy));
 console.log(`Built protocol 3 migration: ${players.length} player versions, ${chemistryPairs.length} chemistry pairs.`);
+
+const root=new URL('../supabase/',import.meta.url);
+writeFileSync(new URL('upgrade-all-v4.sql',root),readFileSync(new URL('upgrade-spin-locks.sql',root),'utf8')+'\n'+readFileSync(new URL('season-v4.sql',root),'utf8'));

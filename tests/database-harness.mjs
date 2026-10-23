@@ -4,7 +4,7 @@ export async function createTestDatabase() {
  const db=new PGlite();
  await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;`);
  await db.exec(readFileSync(new URL('../supabase/multiplayer.sql',import.meta.url),'utf8'));
- const migration=readFileSync(new URL('../supabase/upgrade-spin-locks.sql',import.meta.url),'utf8');
+ const migration=readFileSync(new URL('../supabase/upgrade-all-v4.sql',import.meta.url),'utf8');
  await db.exec(migration);
  async function rpc(uid,name,args){
   if(!/^_?fc_[a-z0-9_]+$/.test(name))throw Error('Invalid test RPC name');

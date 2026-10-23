@@ -61,5 +61,6 @@ try{
  }
  const x=await rpc(a,'fc_read_v3',[final.code]),y=await rpc(b,'fc_read_v3',[final.code]);assert.ok(x.result);assert.deepEqual(x.result,y.result);
  await db.exec(migration);assert.deepEqual((await rpc(a,'fc_read_v3',[final.code])).result,x.result);
+ const initialSeason=await rpc(a,'fc_season_v4',[final.code,null]);assert.equal(initialSeason.cursor,0);await assert.rejects(rpc(outsider,'fc_season_v4',[final.code,null]),/Not a member/);await assert.rejects(rpc(a,'fc_season_v4',[r.code,null]),/FC_SEASON_WAITING/);const advanced=await Promise.all([rpc(a,'fc_season_v4',[final.code,0]),rpc(b,'fc_season_v4',[final.code,0])]);assert.equal(advanced[0].cursor,1);assert.equal(advanced[1].cursor,1);for(let i=1;i<6;i++)await rpc(a,'fc_season_v4',[final.code,i]);const complete=await rpc(b,'fc_season_v4',[final.code,6]);assert.equal(complete.cursor,6);assert.equal(complete.seed,initialSeason.seed);await db.exec(migration);assert.deepEqual(await rpc(a,'fc_season_v4',[final.code,null]),complete);console.log('PASS SQL: shared immutable season seed, atomic round advancement, permissions, completion cap and migration rerun');
  console.log('PASS SQL: full16-vs16 draft, CAM formations, identical persistent final and safe migration rerun');
 }finally{await db.close()}
