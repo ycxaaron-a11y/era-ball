@@ -1,3 +1,4 @@
+import { chemistryBonus } from './chemistry.js';
 import { chineseNames } from './player-names-zh.js';
 import { buildHeightProfiles } from './heights.js';
 import { worldCupSquads } from './catalog-world-cup.js';
@@ -75,20 +76,23 @@ export function eraAdjustment(p, targetEra) {
   }
   return { penalty: 0, reason: '此战术角色在目标年代没有额外扣分' };
 }
-export function fit(p, pos, targetEra) {
+export function fit(p, pos, targetEra, bonus = 0) {
   if (!p) return 0;
-  return Math.max(15, p.rating - positionPenalty(p, pos) - eraAdjustment(p, targetEra).penalty);
+  return Math.max(15, Math.min(100, p.rating + bonus - positionPenalty(p, pos) - eraAdjustment(p, targetEra).penalty));
 }
+export const playerAbility = (s, p, pos) => fit(p, pos, s.targetEra, chemistryBonus(s.picks, p));
+export const playerTier = (s, p) => p ? tier(Math.min(100, p.rating + chemistryBonus(s.picks, p))) : null;
 export function strength(s) {
-  return s.picks.slice(0, 11).reduce((sum, p, i) => sum + fit(p, positions(s.formation)[i], s.targetEra), 0) / 11;
+  return s.picks.slice(0, 11).reduce((sum, p, i) => sum + playerAbility(s, p, positions(s.formation)[i]), 0) / 11;
 }
 export function freshState(mode = 'world_cup') {
   return { version: 2, mode, formation: '4-3-3', picks: Array(16).fill(null), pool: null,
-    rerolls: 3, targetEra: '2020s', excludedEras: [], started: false };
+    rerolls: 3, targetEra: '2020s', excludedEras: [], started: false, drawPhase: 'awaiting', lockProtocol: 3 };
 }
-export function availablePools(s) {
+export function availablePools(s, blockedIds = []) {
+  const blocked = new Set(blockedIds);
   const picked = new Set(s.picks.filter(Boolean).map(p => p.identity));
-  return pools.filter(p => p.mode === s.mode && !s.excludedEras.includes(p.eraId) && p.players.some(x => !picked.has(x.identity)));
+  return pools.filter(p => p.mode === s.mode && !s.excludedEras.includes(p.eraId) && p.players.some(x => !picked.has(x.identity) && !blocked.has(x.id)));
 }
 export function validateSettings(s) {
   if (!['world_cup', 'ucl'].includes(s.mode) || !eraById(s.targetEra)) throw Error('请选择有效的赛事和征战年代。');
@@ -98,8 +102,8 @@ export function validateSettings(s) {
     throw Error('请至少保留一个有足够球员的年代，才能完成 16 人选秀。');
   }
 }
-export function drawPool(s, random = Math.random) {
-  const options = availablePools(s);
+export function drawPool(s, random = Math.random, blockedIds = []) {
+  const options = availablePools(s, blockedIds);
   if (!options.length) return null;
   // Draw an eligible era first, then a team within it. More catalog entries do not weight an era more heavily.
   const eligibleEras = [...new Set(options.map(p => p.eraId))];
@@ -113,20 +117,26 @@ export function startDraft(s, targetEra, excludedEras, random = Math.random) {
   if (s.started) throw Error('本局年代设置已经锁定，请开启新一局。');
   const next = { ...s, targetEra, excludedEras: [...new Set(excludedEras)] };
   validateSettings(next);
-  next.started = true; next.pool = drawPool(next, random);
+  next.started = true; next.pool = null; next.drawPhase = 'awaiting';
   return next;
 }
-export function pickPlayer(s, playerId, slot, random = Math.random) {
-  if (!s.started || !Number.isInteger(slot) || slot < 0 || slot > 15 || s.picks[slot]) throw Error('请先选中一个空阵容位置。');
+export function spinDraft(s, random = Math.random, blockedIds = []) {
+  if (!s.started || s.drawPhase !== 'awaiting' || s.picks.every(Boolean)) throw Error('当前不能 Spin，请先完成本轮选人。');
+  const pool = drawPool(s, random, blockedIds);
+  if (!pool) throw Error('没有剩余可选的球队和球员，请调整设置后开启新一局。');
+  return { ...s, pool, drawPhase: 'ready' };
+}
+export function pickPlayer(s, playerId, slot, random = Math.random, blockedIds = []) {
+  if (!s.started || s.drawPhase !== 'ready' || !Number.isInteger(slot) || slot < 0 || slot > 15 || s.picks[slot]) throw Error('请先选中一个空阵容位置。');
   const player = poolById(s.pool)?.players.find(p => p.id === playerId);
-  if (!player || s.picks.some(p => p?.identity === player.identity)) throw Error('该球员已入队或不在本轮候选名单。');
+  if (!player || blockedIds.includes(playerId) || s.picks.some(p => p?.identity === player.identity)) throw Error('该球员已入队或不在本轮候选名单。');
   const next = { ...s, picks: [...s.picks] }; next.picks[slot] = player;
-  if (next.picks.some(p => !p)) next.pool = drawPool(next, random);
+  next.drawPhase = next.picks.every(Boolean) ? 'complete' : 'awaiting';
   return next;
 }
 export function reroll(s, random = Math.random) {
-  if (!s.started || s.rerolls <= 0 || s.picks.every(Boolean)) throw Error('本轮无法重转。');
-  const next = { ...s, rerolls: s.rerolls - 1 }; next.pool = drawPool(next, random); return next;
+  if (!s.started || s.drawPhase !== 'ready' || s.rerolls <= 0 || s.picks.every(Boolean)) throw Error('本轮无法重转。');
+  return { ...s, rerolls: s.rerolls - 1, drawPhase: 'awaiting' };
 }
 export function hydrateState(saved) {
   if (saved?.lineupFormation) { saved = { ...saved, formation: saved.lineupFormation }; delete saved.lineupFormation; }
@@ -135,12 +145,15 @@ export function hydrateState(saved) {
   try {
     validateSettings(saved);
     if (!saved.started) return fallback;
-    if (!poolById(saved.pool) || poolById(saved.pool).mode !== saved.mode || saved.excludedEras.includes(poolById(saved.pool).eraId)) return fallback;
+    const phase = saved.drawPhase || (saved.picks.every(Boolean) ? 'complete' : 'ready');
+    if (!['awaiting','ready','complete'].includes(phase)) return fallback;
+    if (saved.pool !== null && (!poolById(saved.pool) || poolById(saved.pool).mode !== saved.mode || saved.excludedEras.includes(poolById(saved.pool).eraId))) return fallback;
+    if (phase === 'ready' && !saved.pool) return fallback;
     const allowed = pools.filter(p => p.mode === saved.mode && !saved.excludedEras.includes(p.eraId));
     const catalog = new Map(allowed.flatMap(p => p.players).map(p => [p.id, p]));
     const picks = saved.picks.map(p => p ? catalog.get(p.id) : null);
     if (picks.some((p, i) => saved.picks[i] && !p) || new Set(picks.filter(Boolean).map(p => p.identity)).size !== picks.filter(Boolean).length) return fallback;
-    return { ...fallback, ...saved, picks };
+    return { ...fallback, ...saved, picks, drawPhase: phase };
   } catch { return fallback; }
 }
 // Existing SQL averages rating; submit effective values so online and local rules agree.
@@ -149,7 +162,7 @@ export function networkState(s) {
   // The deployed RPC validates four legacy formation tags but calculates scores only
   // from submitted effective ratings. Preserve the actual layout separately.
   return { ...s, lineupFormation: s.formation, formation: legacyFormations.includes(s.formation) ? s.formation : '4-3-3', picks: s.picks.map((p, i) => p ? { ...p, baseRating: p.rating,
-    rating: fit(p, i < 11 ? positions(s.formation)[i] : 'SUB', s.targetEra) } : null) };
+    rating: playerAbility(s, p, i < 11 ? positions(s.formation)[i] : 'SUB') } : null) };
 }
 export function season(s, random = Math.random) {
   const power = strength(s);

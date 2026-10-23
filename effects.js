@@ -8,3 +8,7 @@ export function splusLightning(tier) {
     <g class="bolt bolt-b"><path d="m3 9 14-5 7 3 9-6 12 6 8-3 12 3 13-5 8 5 12-4 0 15-3 12 4 11-2 9 3 9-4 11 3 14-2 15-11-3-8 4-14-5-9 3-12-3-10 4-13-2-9 3-10-2"/><path class="branch" d="m97 31-7 5 5 6m-2 42-8 2 3 6M33 1l-3 10 8-3"/></g>
   </svg>`;
 }
+
+export function placementImpact() {
+  return `<span class="placement-impact" aria-hidden="true"><span class="impact-ring"></span>${[-1,-.65,0,.65,1].map((x,i)=>`<span class="impact-dust" style="--dust-x:${x*70}px;--dust-y:${26+Math.abs(x)*12}px;--dust-delay:${i*.018}s"></span>`).join('')}</span>`;
+}

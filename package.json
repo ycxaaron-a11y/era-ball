@@ -1,11 +1,13 @@
 {
   "name": "era-fc",
-  "version": "2.2.0",
+  "version": "3.0.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "python3 -m http.server 3000 --bind 0.0.0.0",
     "start": "python3 -m http.server 3000 --bind 0.0.0.0",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "build:database": "node scripts/build-draft-upgrade.mjs",
+    "test:database": "node tests/database-protocol.mjs"
   }
 }

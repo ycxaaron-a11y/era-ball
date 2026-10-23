@@ -1,6 +1,7 @@
+import { startSpunDraft } from './helpers.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { pools, eras, eraAdjustment, positions, fit, strength, freshState, startDraft,
+import { pools, eras, eraAdjustment, positions, fit, strength, freshState, spinDraft,
   drawPool, poolById, pickPlayer, reroll, hydrateState, networkState } from '../data.js';
 import { request, validatePublicConfig } from '../multiplayer.js';
 
@@ -46,16 +47,17 @@ test('era adjustments depend on role, are transparent, and do not blanket-penali
 });
 test('locked eras never enter draws, settings cannot change after starting, and all-lock is rejected', () => {
   const base = freshState();
-  assert.throws(() => startDraft(base, '2020s', eras.map(e => e.id)), /至少保留/);
-  const s = startDraft(base, '1960s', eras.filter(e => e.id !== '2010s-b').map(e => e.id));
-  assert.throws(() => startDraft(s, '2020s', []), /锁定/);
+  assert.throws(() => startSpunDraft(base, '2020s', eras.map(e => e.id)), /至少保留/);
+  const s = startSpunDraft(base, '1960s', eras.filter(e => e.id !== '2010s-b').map(e => e.id));
+  assert.throws(() => startSpunDraft(s, '2020s', []), /锁定/);
   for (let i = 0; i < 50; i++) assert.equal(poolById(drawPool(s)).eraId, '2010s-b');
   assert.equal(s.targetEra, '1960s');
 });
 test('a complete draft can be assembled with only one era unlocked in every era/mode', () => {
   for (const mode of ['world_cup', 'ucl']) for (const era of eras) {
-    let s = startDraft(freshState(mode), '2020s', eras.filter(e => e.id !== era.id).map(e => e.id), () => 0);
+    let s = startSpunDraft(freshState(mode), '2020s', eras.filter(e => e.id !== era.id).map(e => e.id), () => 0);
     for (let i = 0; i < 16; i++) {
+      if(s.drawPhase==='awaiting')s=spinDraft(s,()=>0);
       const candidate = poolById(s.pool).players.find(p => !s.picks.some(x => x?.identity === p.identity));
       assert.ok(candidate, `${mode}/${era.id} draft got stuck`);
       s = pickPlayer(s, candidate.id, i, () => 0);
@@ -66,8 +68,8 @@ test('a complete draft can be assembled with only one era unlocked in every era/
   }
 });
 test('rerolls have a hard limit of 3 and picks reject overwrites or duplicate people', () => {
-  let s = startDraft(freshState(), '2020s', [], () => 0);
-  for (let i = 0; i < 3; i++) s = reroll(s, () => 0);
+  let s = startSpunDraft(freshState(), '2020s', [], () => 0);
+  for (let i = 0; i < 3; i++) s = spinDraft(reroll(s), () => 0);
   assert.equal(s.rerolls, 0); assert.throws(() => reroll(s));
   const id = poolById(s.pool).players[0].id;
   s = pickPlayer(s, id, 0, () => 0);
@@ -75,7 +77,7 @@ test('rerolls have a hard limit of 3 and picks reject overwrites or duplicate pe
   assert.equal(s.rerolls, 0);
 });
 test('online submits effective scores so existing SQL matches local strength without changing source ratings', () => {
-  const s = startDraft(freshState(), '2020s', [], () => 0);
+  const s = startSpunDraft(freshState(), '2020s', [], () => 0);
   s.picks = poolById(s.pool).players.slice(0, 16);
   const wire = networkState(s);
   assert.equal(wire.picks.slice(0, 11).reduce((sum, p) => sum + p.rating, 0) / 11, strength(s));
@@ -84,7 +86,7 @@ test('online submits effective scores so existing SQL matches local strength wit
 });
 test('corrupt or obsolete stored drafts reset safely', () => {
   assert.equal(hydrateState({ version: 1 }).started, false);
-  const s = startDraft(freshState(), '2020s', []);
+  const s = startSpunDraft(freshState(), '2020s', []);
   assert.equal(hydrateState({ ...s, pool: 'missing' }).started, false);
   assert.equal(hydrateState({ ...s, excludedEras: ['fake-era'] }).started, false);
 });

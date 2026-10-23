@@ -10,7 +10,7 @@ export async function request(config, path, body, token, fetcher = fetch) {
   catch { throw Error('服务返回了无法识别的响应，请稍后重试。'); }
   if (!response.ok) {
     const error = Error(value?.message || value?.msg || value?.error_description || `连接失败 (${response.status})`);
-    error.status = response.status; throw error;
+    error.status = response.status; error.code = value?.code; error.details = value?.details; throw error;
   }
   return value;
 }

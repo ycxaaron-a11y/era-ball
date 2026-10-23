@@ -1,6 +1,7 @@
+import { startSpunDraft } from './helpers.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { pools, freshState, startDraft, poolById, networkState } from '../data.js';
+import { pools, freshState, spinDraft, poolById, networkState } from '../data.js';
 import { selectCandidate, placeCandidate, candidateFor } from '../placement.js';
 import { positionNames, positionName, positionList, heightLabel } from '../display.js';
 
@@ -27,7 +28,7 @@ test('heights are complete and the interface displays clean centimetre values', 
   assert.equal(heightLabel({}), '—');
 });
 test('selecting and previewing never modifies draft, rerolls, pool or network payload', () => {
-  const state = startDraft(freshState(), '2020s', [], () => 0);
+  const state = startSpunDraft(freshState(), '2020s', [], () => 0);
   const saved = JSON.stringify(state), outgoing = JSON.stringify(networkState(state));
   const player = poolById(state.pool).players[0];
   const selection = selectCandidate(state, player.id);
@@ -42,7 +43,7 @@ test('selecting and previewing never modifies draft, rerolls, pool or network pa
   assert.equal(state.picks.filter(Boolean).length, 0);
 });
 test('changing preview slot rearms confirmation; only second tap of the same slot picks the player', () => {
-  const state = startDraft(freshState(), '2020s', [], () => 0);
+  const state = startSpunDraft(freshState(), '2020s', [], () => 0);
   const player = poolById(state.pool).players[0];
   const selection = selectCandidate(state, player.id);
   let result = placeCandidate(state, selection, 0, () => 0);
@@ -54,10 +55,11 @@ test('changing preview slot rearms confirmation; only second tap of the same slo
   assert.equal(result.state.picks[10].id, player.id);
   assert.equal(result.state.picks.filter(Boolean).length, 1);
   assert.equal(result.state.rerolls, 3);
-  assert.notEqual(result.state.pool, state.pool);
+  assert.equal(result.state.pool, state.pool);
+  assert.equal(result.state.drawPhase,'awaiting');
 });
 test('new candidate, new formation and stale pools cannot accidentally confirm a preview', () => {
-  const state = startDraft(freshState(), '2020s', [], () => 0), players = poolById(state.pool).players;
+  const state = startSpunDraft(freshState(), '2020s', [], () => 0), players = poolById(state.pool).players;
   const a = placeCandidate(state, selectCandidate(state, players[0].id), 0);
   const b = selectCandidate(state, players[1].id);
   assert.equal(b.slot, null);
@@ -69,9 +71,10 @@ test('new candidate, new formation and stale pools cannot accidentally confirm a
   assert.throws(()=>placeCandidate(state,null,0),/先从右侧/);
 });
 test('preview cannot overwrite an occupied slot, and bench supports the same two-tap flow', () => {
-  let state = startDraft(freshState(), '2020s', [], () => 0), player = poolById(state.pool).players[0];
+  let state = startSpunDraft(freshState(), '2020s', [], () => 0), player = poolById(state.pool).players[0];
   let selection = selectCandidate(state, player.id), result = placeCandidate(state, selection, 11);
   result = placeCandidate(state, result.placement, 11, () => 0);state=result.state;
+  state=spinDraft(state,()=>0);
   const next = poolById(state.pool).players.find(p=>p.identity!==player.identity);
   selection=selectCandidate(state,next.id);
   assert.throws(()=>placeCandidate(state,selection,11),/空位置/);

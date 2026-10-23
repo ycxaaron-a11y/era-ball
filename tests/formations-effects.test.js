@@ -1,6 +1,7 @@
+import { startSpunDraft } from './helpers.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { formations, formationLayout, positions, pools, freshState, startDraft, poolById, networkState, hydrateState, strength } from '../data.js';
+import { formations, formationLayout, positions, pools, freshState, spinDraft, poolById, networkState, hydrateState, strength } from '../data.js';
 import { estimateHeight } from '../heights.js';
 import { playerHeights } from '../player-heights.js';
 import { splusLightning, playerSilhouette } from '../effects.js';
@@ -19,7 +20,7 @@ test('all seven formations have eleven on-field players and one keeper; new layo
 });
 test('new formations submit through the existing RPC whitelist without losing the actual layout or scores', () => {
   for (const formation of ['4-2-3-1','4-3-1-2','3-4-1-2']) {
-    const state=startDraft(freshState(),'2020s',[],()=>0);state.formation=formation;
+    const state=startSpunDraft(freshState(),'2020s',[],()=>0);state.formation=formation;
     state.picks=poolById(state.pool).players.slice(0,16);
     const payload=networkState(state);
     assert.ok(['4-3-3','4-4-2','4-2-4','3-5-2'].includes(payload.formation));
