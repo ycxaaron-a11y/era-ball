@@ -1,16 +1,147 @@
-// Era-specific, editorial estimates; never presented as official or objective ratings.
-const raw=[
-['world_cup','阿根廷','2022','🇦🇷','Messi:RW:99,Álvarez:ST:88,Di María:RW:91,Lautaro Martínez:ST:86,Dybala:CAM:86,De Paul:CM:87,Enzo Fernández:CM:88,Mac Allister:CM:88,Paredes:CDM:83,Guido Rodríguez:CDM:80,Romero:CB:89,Otamendi:CB:87,Lisandro Martínez:CB:85,Molina:RB:86,Montiel:RB:81,Tagliafico:LB:84,Acuña:LB:85,Emiliano Martínez:GK:92,Rulli:GK:78,Armani:GK:76,Correa:RW:81,Almada:CAM:77,Gómez:CAM:79,Foyth:RB:80,Pezzella:CB:81'],
-['world_cup','巴西','2002','🇧🇷','Ronaldo:ST:99,Rivaldo:CAM:97,Ronaldinho:CAM:95,Kaká:CAM:81,Denílson:LW:84,Juninho Paulista:CM:86,Kléberson:CM:87,Gilberto Silva:CDM:91,Vampeta:CDM:80,Cafu:RB:96,Roberto Carlos:LB:96,Lúcio:CB:91,Roque Júnior:CB:85,Edmílson:CB:88,Belletti:RB:81,Júnior:LB:80,Anderson Polga:CB:79,Marcos:GK:92,Dida:GK:85,Rogério Ceni:GK:83,Luizão:ST:80,Edílson:ST:82'],
-['world_cup','法国','2018','🇫🇷','Mbappé:RW:95,Griezmann:ST:94,Giroud:ST:87,Dembélé:RW:83,Fekir:CAM:82,Lemar:LW:80,Pogba:CM:92,Kanté:CDM:95,Matuidi:CM:89,Tolisso:CM:83,Nzonzi:CDM:82,Varane:CB:93,Umtiti:CB:91,Kimpembe:CB:82,Rami:CB:78,Pavard:RB:87,Lucas Hernández:LB:89,Sidibé:RB:81,Mendy:LB:81,Lloris:GK:92,Mandanda:GK:82,Areola:GK:80,Thauvin:RW:79'],
-['ucl','皇家马德里','2017','⚪','Cristiano Ronaldo:LW:99,Benzema:ST:92,Bale:RW:92,Isco:CAM:92,Asensio:RW:86,Morata:ST:85,Lucas Vázquez:RW:84,Modrić:CM:97,Kroos:CM:96,Casemiro:CDM:94,Kovačić:CM:85,James Rodríguez:CAM:87,Ramos:CB:96,Varane:CB:91,Pepe:CB:89,Nacho:CB:86,Marcelo:LB:95,Carvajal:RB:94,Danilo:RB:81,Coentrão:LB:76,Keylor Navas:GK:93,Casilla:GK:79,Yáñez:GK:70'],
-['ucl','巴塞罗那','2011','🔵','Messi:RW:99,David Villa:LW:94,Pedro:RW:90,Bojan:ST:80,Jeffrén:LW:75,Xavi:CM:98,Iniesta:CM:97,Busquets:CDM:94,Keita:CM:85,Mascherano:CDM:91,Thiago:CM:82,Afellay:CAM:81,Puyol:CB:94,Piqué:CB:93,Abidal:LB:91,Dani Alves:RB:96,Adriano:LB:83,Maxwell:LB:82,Milito:CB:80,Fontàs:CB:74,Valdés:GK:92,Pinto:GK:78'],
-['ucl','曼彻斯特城','2023','🩵','Haaland:ST:97,Álvarez:ST:87,Foden:LW:90,Grealish:LW:90,Mahrez:RW:90,Palmer:RW:77,De Bruyne:CM:97,Bernardo Silva:CM:94,Gündoğan:CM:93,Rodri:CDM:96,Phillips:CDM:77,Perrone:CM:70,Rúben Dias:CB:94,Stones:CB:93,Aké:CB:91,Akanji:CB:90,Laporte:CB:87,Walker:RB:92,Rico Lewis:RB:80,Sergio Gómez:LB:75,Ederson:GK:92,Ortega:GK:83,Carson:GK:68']
-];
-export const tier=r=>r>=99?'S+':r>=94?'S':r>=88?'A':r>=82?'B':r>=75?'C':'D';
-export const pools=raw.map(([mode,team,era,flag,list],i)=>({id:i,mode,team,era,flag,players:list.split(',').map((s,j)=>{const [name,pos,r]=s.split(':');return{id:`${i}-${j}`,name,pos,rating:+r,tier:tier(+r),identity:name,team,era,flag}})}));
-export const formations={'4-3-3':[['LW','ST','RW'],['CM','CDM','CM'],['LB','CB','CB','RB'],['GK']],'4-4-2':[['ST','ST'],['LM','CM','CM','RM'],['LB','CB','CB','RB'],['GK']],'4-2-4':[['LW','ST','ST','RW'],['CM','CM'],['LB','CB','CB','RB'],['GK']],'3-5-2':[['ST','ST'],['LM','CM','CDM','CM','RM'],['CB','CB','CB'],['GK']]};
-export function positions(f){return formations[f].flat()}
-export function fit(p,pos){if(!p)return 0;if(pos==='SUB'||p.pos===pos)return p.rating;const groups=[['LW','RW','LM','RM'],['CM','CDM','CAM'],['LB','RB','CB']];if(groups.some(g=>g.includes(p.pos)&&g.includes(pos)))return p.rating-4;if(p.pos==='GK'||pos==='GK')return Math.max(15,p.rating-45);return p.rating-12}
-export function strength(s){return s.picks.slice(0,11).reduce((sum,p,i)=>sum+fit(p,positions(s.formation)[i]),0)/11}
-export function season(s,random=Math.random){const power=strength(s);return Array.from({length:8},(_,i)=>{const opponent=80+random()*12;const goals=x=>{let n=0;for(let j=0;j<5;j++)if(random()<x)n++;return n};const home=goals(Math.max(.08,Math.min(.65,.27+(power-opponent)/70)));const away=goals(Math.max(.08,Math.min(.65,.27+(opponent-power)/70)));return{stage:i<6?`联赛阶段 · 第 ${i+1} 轮`:i===6?'半决赛':'决赛',home,away,opponent:Math.round(opponent),penalties:i>=6&&home===away?(random()<(power/(power+opponent))?'点球胜':'点球负'):null}})}
+import { worldCupSquads } from './catalog-world-cup.js';
+import { uclSquads } from './catalog-ucl.js';
+
+export const eras = [
+  ['1960s', '1960–1969', 1960, 1969], ['1970s-a', '1970–1974', 1970, 1974],
+  ['1970s-b', '1975–1979', 1975, 1979], ['1980s-a', '1980–1984', 1980, 1984],
+  ['1980s-b', '1985–1989', 1985, 1989], ['1990s-a', '1990–1994', 1990, 1994],
+  ['1990s-b', '1995–1999', 1995, 1999], ['2000s-a', '2000–2004', 2000, 2004],
+  ['2000s-b', '2005–2009', 2005, 2009], ['2010s-a', '2010–2014', 2010, 2014],
+  ['2010s-b', '2015–2019', 2015, 2019], ['2020s', '2020–2024', 2020, 2024]
+].map(([id, label, from, to]) => ({ id, label, from, to }));
+export const eraById = id => eras.find(e => e.id === id);
+export const eraForYear = year => eras.find(e => year >= e.from && year <= e.to);
+export const tier = r => r >= 99 ? 'S+' : r >= 94 ? 'S' : r >= 88 ? 'A' : r >= 82 ? 'B' : r >= 75 ? 'C' : 'D';
+export const tierClass = t => `tier-${t === 'S+' ? 'sp' : t.toLowerCase()}`;
+export const pools = [...worldCupSquads, ...uclSquads].map(squad => ({
+  ...squad, era: String(squad.year), eraId: eraForYear(squad.year).id,
+  players: squad.players.map(p => ({
+    ...p, id: `${squad.id}:${p.identity}`, pos: p.positions[0], tier: tier(p.rating),
+    profile: p.profile || 'universal', year: squad.year, era: String(squad.year),
+    team: squad.team, flag: squad.flag
+  }))
+}));
+export const poolById = id => pools.find(p => p.id === id);
+export const formations = {
+  '4-3-3': [['LW', 'ST', 'RW'], ['CM', 'CDM', 'CM'], ['LB', 'CB', 'CB', 'RB'], ['GK']],
+  '4-4-2': [['ST', 'ST'], ['LM', 'CM', 'CM', 'RM'], ['LB', 'CB', 'CB', 'RB'], ['GK']],
+  '4-2-4': [['LW', 'ST', 'ST', 'RW'], ['CM', 'CM'], ['LB', 'CB', 'CB', 'RB'], ['GK']],
+  '3-5-2': [['ST', 'ST'], ['LM', 'CM', 'CDM', 'CM', 'RM'], ['CB', 'CB', 'CB'], ['GK']]
+};
+export const positions = f => formations[f].flat();
+export function positionPenalty(p, pos) {
+  if (!p) return 0;
+  const preferred = p.positions || [p.pos];
+  if (pos === 'SUB' || preferred.includes(pos)) return 0;
+  if (preferred.includes('GK') || pos === 'GK') return 45;
+  const groups = [['LW', 'RW', 'LM', 'RM'], ['ST', 'CAM'], ['CM', 'CDM', 'CAM'], ['LB', 'RB', 'CB']];
+  return groups.some(g => g.includes(pos) && preferred.some(v => g.includes(v))) ? 4 : 12;
+}
+// Counterfactual adaptation is an editorial game model, not a measured historical fact.
+// Most players have no era penalty. Only specifically tagged tactical roles are adjusted.
+export function eraAdjustment(p, targetEra) {
+  const era = eraById(targetEra);
+  if (!p || !era || (p.year >= era.from && p.year <= era.to)) return { penalty: 0, reason: '本年代环境，无年代扣分' };
+  if (p.identity === 'virgil-van-dijk' || !p.profile || p.profile === 'universal') {
+    return { penalty: 0, reason: '技术与身体能力具备跨年代适应性，无年代扣分' };
+  }
+  if (p.year < 1992 && era.from >= 1995 && p.profile === 'classic-keeper') {
+    return { penalty: 3, reason: '传统门将进入回传规则改革后的环境：脚下出球适应 −3' };
+  }
+  if (p.year < 1995 && era.from >= 2005 && p.profile === 'classic-stopper') {
+    return { penalty: 2, reason: '传统盯人中卫进入高位防线：大空间防守适应 −2' };
+  }
+  if (p.year < 1995 && era.from >= 2005 && p.profile === 'classic-maker') {
+    return { penalty: 2, reason: '传统自由组织者进入紧凑压迫环境：接球空间适应 −2' };
+  }
+  if (p.year >= 2005 && era.to <= 1984 && p.profile === 'modern-wingback') {
+    return { penalty: 2, reason: '现代进攻边卫进入较早战术体系：套边支援与身后保护适应 −2' };
+  }
+  if (p.year >= 2005 && era.to <= 1984 && p.profile === 'modern-press') {
+    return { penalty: 1, reason: '依赖集体压迫的现代角色进入早期体系：协同适应 −1' };
+  }
+  return { penalty: 0, reason: '此战术角色在目标年代没有额外扣分' };
+}
+export function fit(p, pos, targetEra) {
+  if (!p) return 0;
+  return Math.max(15, p.rating - positionPenalty(p, pos) - eraAdjustment(p, targetEra).penalty);
+}
+export function strength(s) {
+  return s.picks.slice(0, 11).reduce((sum, p, i) => sum + fit(p, positions(s.formation)[i], s.targetEra), 0) / 11;
+}
+export function freshState(mode = 'world_cup') {
+  return { version: 2, mode, formation: '4-3-3', picks: Array(16).fill(null), pool: null,
+    rerolls: 3, targetEra: '2020s', excludedEras: [], started: false };
+}
+export function availablePools(s) {
+  const picked = new Set(s.picks.filter(Boolean).map(p => p.identity));
+  return pools.filter(p => p.mode === s.mode && !s.excludedEras.includes(p.eraId) && p.players.some(x => !picked.has(x.identity)));
+}
+export function validateSettings(s) {
+  if (!['world_cup', 'ucl'].includes(s.mode) || !eraById(s.targetEra)) throw Error('请选择有效的赛事和征战年代。');
+  if (!Array.isArray(s.excludedEras) || s.excludedEras.some(id => !eraById(id))) throw Error('排除年代无效。');
+  const candidates = availablePools(s);
+  if (!candidates.length || new Set(candidates.flatMap(p => p.players.map(x => x.identity))).size < 16) {
+    throw Error('请至少保留一个有足够球员的年代，才能完成 16 人选秀。');
+  }
+}
+export function drawPool(s, random = Math.random) {
+  const options = availablePools(s);
+  if (!options.length) return null;
+  // Draw an eligible era first, then a team within it. More catalog entries do not weight an era more heavily.
+  const eligibleEras = [...new Set(options.map(p => p.eraId))];
+  const eraId = eligibleEras[Math.min(eligibleEras.length - 1, Math.floor(random() * eligibleEras.length))];
+  const eraPools = options.filter(p => p.eraId === eraId);
+  const alternatives = eraPools.filter(p => p.id !== s.pool);
+  const choices = alternatives.length ? alternatives : eraPools;
+  return choices[Math.min(choices.length - 1, Math.floor(random() * choices.length))].id;
+}
+export function startDraft(s, targetEra, excludedEras, random = Math.random) {
+  if (s.started) throw Error('本局年代设置已经锁定，请开启新一局。');
+  const next = { ...s, targetEra, excludedEras: [...new Set(excludedEras)] };
+  validateSettings(next);
+  next.started = true; next.pool = drawPool(next, random);
+  return next;
+}
+export function pickPlayer(s, playerId, slot, random = Math.random) {
+  if (!s.started || !Number.isInteger(slot) || slot < 0 || slot > 15 || s.picks[slot]) throw Error('请先选中一个空阵容位置。');
+  const player = poolById(s.pool)?.players.find(p => p.id === playerId);
+  if (!player || s.picks.some(p => p?.identity === player.identity)) throw Error('该球员已入队或不在本轮候选名单。');
+  const next = { ...s, picks: [...s.picks] }; next.picks[slot] = player;
+  if (next.picks.some(p => !p)) next.pool = drawPool(next, random);
+  return next;
+}
+export function reroll(s, random = Math.random) {
+  if (!s.started || s.rerolls <= 0 || s.picks.every(Boolean)) throw Error('本轮无法重转。');
+  const next = { ...s, rerolls: s.rerolls - 1 }; next.pool = drawPool(next, random); return next;
+}
+export function hydrateState(saved) {
+  const fallback = freshState(saved?.mode === 'ucl' ? 'ucl' : 'world_cup');
+  if (!saved || saved.version !== 2 || !formations[saved.formation] || !Array.isArray(saved.picks) || saved.picks.length !== 16 || !Number.isInteger(saved.rerolls) || saved.rerolls < 0 || saved.rerolls > 3) return fallback;
+  try {
+    validateSettings(saved);
+    if (!saved.started) return fallback;
+    if (!poolById(saved.pool) || poolById(saved.pool).mode !== saved.mode || saved.excludedEras.includes(poolById(saved.pool).eraId)) return fallback;
+    const allowed = pools.filter(p => p.mode === saved.mode && !saved.excludedEras.includes(p.eraId));
+    const catalog = new Map(allowed.flatMap(p => p.players).map(p => [p.id, p]));
+    const picks = saved.picks.map(p => p ? catalog.get(p.id) : null);
+    if (picks.some((p, i) => saved.picks[i] && !p) || new Set(picks.filter(Boolean).map(p => p.identity)).size !== picks.filter(Boolean).length) return fallback;
+    return { ...fallback, ...saved, picks };
+  } catch { return fallback; }
+}
+// Existing SQL averages rating; submit effective values so online and local rules agree.
+export function networkState(s) {
+  return { ...s, picks: s.picks.map((p, i) => p ? { ...p, baseRating: p.rating,
+    rating: fit(p, i < 11 ? positions(s.formation)[i] : 'SUB', s.targetEra) } : null) };
+}
+export function season(s, random = Math.random) {
+  const power = strength(s);
+  return Array.from({ length: 8 }, (_, i) => {
+    const opponent = 77 + random() * 13;
+    const goals = chance => { let n = 0; for (let j = 0; j < 5; j++) if (random() < chance) n++; return n; };
+    const home = goals(Math.max(.08, Math.min(.65, .27 + (power - opponent) / 70)));
+    const away = goals(Math.max(.08, Math.min(.65, .27 + (opponent - power) / 70)));
+    return { stage: i < 6 ? `联赛阶段 · 第 ${i + 1} 轮` : i === 6 ? '半决赛' : '决赛', home, away,
+      opponent: Math.round(opponent), penalties: i >= 6 && home === away ? (random() < power / (power + opponent) ? '点球胜' : '点球负') : null };
+  });
+}

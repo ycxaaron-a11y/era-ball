@@ -1,29 +1,223 @@
-import {cloudConfig} from './config.js';
-import {pools,positions,formations,fit,strength,season} from './data.js';
-const $=id=>document.getElementById(id);const storage='era-fc-v1';
-function fresh(mode='world_cup'){return{mode,formation:'4-3-3',picks:Array(16).fill(null),pool:pools.filter(p=>p.mode===mode)[0].id,rerolls:3}}
-let s;try{s=JSON.parse(localStorage.getItem(storage))}catch{}if(!s||!formations[s.formation]||!Array.isArray(s.picks)||s.picks.length!==16||!pools[s.pool])s=fresh();
-let selected=s.picks.findIndex(p=>!p),filter='全部',room=null,revision=0,timer=null,remote=null;
-const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function save(){localStorage.setItem(storage,JSON.stringify(s));render();if(room)publish().catch(e=>notify(e.message))}
-function draw(){const options=pools.filter(p=>p.mode===s.mode&&p.id!==s.pool);s.pool=options[Math.floor(Math.random()*options.length)].id}
-function modal(html){$('modal-body').innerHTML=html;if(!$('modal').open)$('modal').showModal()}
-function notify(t){modal(`<h2>提示</h2><p>${esc(t)}</p>`)}
-function slot(p,i,pos,xy){return `<button class="slot ${selected===i?'selected':''}" data-slot="${i}" ${xy?`style="left:${xy[0]}%;top:${xy[1]}%"`:''} title="${p?'点击移除球员':'点击选择此位置'}">${p?`<em>${p.rating}</em><b>${esc(p.name)}</b><small>${pos} · ${p.tier}${i<11&&fit(p,pos)<p.rating?' · 不适配 −'+(p.rating-fit(p,pos)):''}</small>`:`<span class="plus">＋</span><small>${pos}</small>`}</button>`}
-function render(){const pool=pools[s.pool];$('wc').classList.toggle('active',s.mode==='world_cup');$('ucl').classList.toggle('active',s.mode==='ucl');$('formation').value=s.formation;let index=0;$('pitch').innerHTML=formations[s.formation].map((row,r)=>row.map((pos,c)=>{const i=index++;return slot(s.picks[i],i,pos,[100*(c+1)/(row.length+1),15+r*24])}).join('')).join('');$('bench').innerHTML=s.picks.slice(11).map((p,i)=>slot(p,i+11,'SUB')).join('');document.querySelectorAll('[data-slot]').forEach(el=>el.onclick=()=>{const i=+el.dataset.slot;if(s.picks[i]){if(!confirm('移除此球员？不会恢复重转次数。'))return;s.picks[i]=null}selected=i;save()});$('count').textContent=`${s.picks.filter(Boolean).length} / 16`;$('rating').textContent=s.picks.slice(0,11).some(Boolean)?strength(s).toFixed(1):'—';$('team-name').textContent=pool.team;$('crest').textContent=pool.flag;$('era').textContent=`ERA / ${pool.era}`;$('mode-label').textContent=s.mode==='ucl'?'UEFA CHAMPIONS LEAGUE':'FIFA WORLD CUP';$('rerolls').textContent=`剩余 ${s.rerolls} / 3 次`;$('roll').disabled=s.rerolls===0;$('simulate').disabled=s.picks.some(p=>!p);$('pool-count').textContent=`${pool.players.length} 位球员`;$('filters').innerHTML=['全部','前锋','中场','后卫','门将'].map(f=>`<button class="${f===filter?'active':''}" data-filter="${f}">${f}</button>`).join('');document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.filter;render()});const groups={'前锋':['ST','LW','RW'],'中场':['CM','CAM','CDM'],'后卫':['LB','RB','CB'],'门将':['GK']};$('players').innerHTML=pool.players.filter(p=>filter==='全部'||groups[filter].includes(p.pos)).sort((a,b)=>b.rating-a.rating).map(p=>`<button class="player-card" data-player="${p.id}" ${s.picks.some(x=>x&&x.identity===p.identity)?'disabled':''}><span class="avatar">${p.pos==='GK'?'🧤':pool.flag}</span><span><span class="name">${esc(p.name)}</span><small>${p.pos} · ${p.rating} OVR</small></span><span class="tier ${p.rating>=94?'elite':''}">${p.tier}</span></button>`).join('');document.querySelectorAll('[data-player]').forEach(b=>b.onclick=()=>{if(selected<0||s.picks[selected])return notify('请先选择一个空阵容位置。');s.picks[selected]=pool.players.find(p=>p.id===b.dataset.player);selected=s.picks.findIndex(p=>!p);draw();save()})}
-$('close').onclick=()=>$('modal').close();$('roll').onclick=()=>{if(s.rerolls){s.rerolls--;draw();save()}};$('formation').onchange=e=>{s.formation=e.target.value;save()};
-function reset(mode=s.mode){if(room)return notify('联机期间请先离开房间再切换模式或重新开始。');if(s.picks.some(Boolean)&&!confirm('开始新选秀会清空当前阵容，确定继续？'))return;s=fresh(mode);selected=0;filter='全部';save()}
-$('wc').onclick=()=>s.mode!=='world_cup'&&reset('world_cup');$('ucl').onclick=()=>s.mode!=='ucl'&&reset('ucl');$('reset').onclick=()=>reset();
-$('rules').onclick=()=>modal('<h2>跨时代，公平选秀</h2><p>每局选择 11 名首发与 5 名替补。每签下一人自动抽取一组球队 × 年代，可额外重转 3 次。每个模式内从已收录的有效组合等概率抽取，避免出现没有名单的球队年代组合。同一球员不能重复入队。</p><p>评分阈值：S+ 99–100；S 94–98；A 88–93；B 82–87；C 75–81；D 1–74。评分参考该年代赛事表现与角色，是可讨论的编辑估值，无法保证绝对客观。跨年代同名球员视为同一人。</p><p>位置完全匹配无扣分，同组位置扣 4 分，其他位置扣 12 分，门将与外场错位扣 45 分。阵容评分计算首发位置适配；当前替补为阵容收集，不参与自动换人。赛季为简化的 6 轮联赛、半决赛、决赛；非真实赛事赛制。联机为双方独立选秀后决赛对抗。</p>');
-$('simulate').onclick=()=>{if(s.picks.some(p=>!p))return;const results=season(s);const semi=results[6];const qualified=semi.home>semi.away||semi.penalties==='点球胜';const played=qualified?results:results.slice(0,7);const last=played.at(-1);const win=qualified&&(last.home>last.away||last.penalties==='点球胜');modal(`<div class="trophy">${win?'🏆':'⚽'}</div><h2>${win?'你的梦之队，登上巅峰！':qualified?'决赛惜败，传奇仍在继续':'半决赛止步，再战下个赛季'}</h2><p>首发评分 ${strength(s).toFixed(1)} · 每场比赛由实力与随机因素共同决定</p>${played.map(m=>`<div class="match"><span>${m.stage} · 对手 ${m.opponent}</span><b>${m.home} : ${m.away} ${m.penalties||''}</b></div>`).join('')}`)};
-// Supabase public REST + anonymous Auth; server-side RPC validates room membership.
-let config;try{config=JSON.parse(localStorage.getItem('era-fc-cloud'))}catch{}config={...cloudConfig,...config};let token=null;
-async function api(path,body,method='POST'){const r=await fetch(config.url+path,{method,headers:{apikey:config.key,...(token?{Authorization:`Bearer ${token}`}:{}),'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});const text=await r.text();let d=null;try{d=text?JSON.parse(text):null}catch{throw Error('服务返回了无法识别的响应，请稍后重试。')}if(!r.ok)throw Error(d?.message||d?.msg||d?.error_description||'请求失败');return d}
-async function auth(){config={url:$('url').value.trim().replace(/\/$/,''),key:$('key').value.trim()};if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(config.url)||!config.key)throw Error('请填写有效的 Supabase 项目 URL 和公开 key。');if(config.key.startsWith('sb_secret_'))throw Error('不要使用 secret/service_role key。');const d=await api('/auth/v1/signup',{});token=d.access_token;if(!token)throw Error('请在 Supabase 开启 Anonymous Sign-Ins。');localStorage.setItem('era-fc-cloud',JSON.stringify(config))}
-function onlineUI(){modal(`<h2>联机 · 和朋友争夺冠军</h2><p>首次配置：运行仓库中的 supabase/multiplayer.sql，并在 Authentication 开启 Anonymous Sign-Ins。房间码请仅发给朋友。</p><input id="url" placeholder="https://项目.supabase.co" value="${esc(config.url||'')}"><input id="key" placeholder="Publishable key / anon public key" value="${esc(config.key||'')}"><input id="code" placeholder="输入朋友的房间码" maxlength="8"><button class="primary" id="create">创建房间</button><button id="join">加入房间</button><button id="leave">离开房间</button><p id="status">${room?'房间 '+room+' · 每 2 秒同步':'未连接 · 本地模式可完整试玩'}</p><p class="hint">公开 key 可填在此处，绝不能填 service_role。当前联机是朋友间原型，不是防作弊竞技系统。</p>`);$('create').onclick=()=>connect(true);$('join').onclick=()=>connect(false);$('leave').onclick=()=>{clearInterval(timer);room=null;remote=null;notify('已离开房间，继续本地选秀。')}}
-$('online').onclick=onlineUI;
-async function connect(create){try{if(room)throw Error('请先离开当前房间。');const code=$('code').value.trim().toUpperCase();if(!create&&!/^[A-F0-9]{8}$/.test(code))throw Error('请输入 8 位房间码。');if(s.picks.some(Boolean)&&!confirm('进入联机会开始一份新阵容，确定继续？'))return;await auth();const d=await api('/rest/v1/rpc/fc_connect',{p_code:create?null:code,p_mode:s.mode});room=d.code;shownResult=false;revision=d.revision;s=fresh(d.mode);selected=0;remote=d;save();$('status').textContent=`房间 ${room} · 将房间码发给朋友。双方选满 16 人后自动进行共同决赛。`;timer=setInterval(()=>poll().catch(e=>{if($('status'))$('status').textContent=e.message}),2000)}catch(e){if($('status'))$('status').textContent=e.message}}
-async function publish(){if(!room)return;await api('/rest/v1/rpc/fc_submit',{p_code:room,p_state:s})}
-let shownResult=false;
-async function poll(){if(!room)return;remote=await api('/rest/v1/rpc/fc_read',{p_code:room});const members=remote.members;const ready=members.filter(m=>m.state?.picks?.filter(Boolean).length===16).length;if($('status'))$('status').textContent=`房间 ${room} · ${members.length}/2 人在线 · ${ready}/2 阵容完成`;if(remote.result&&!shownResult){shownResult=true;modal(`<div class="trophy">🏆</div><h2>联机决赛</h2><p>房主 ${remote.result.home} : ${remote.result.away} 客队</p><p>${remote.result.penalties||''}</p><p>共同赛果已存储在房间，双方读取同一结果。</p>`)}}
+import { cloudConfig } from './config.js';
+import { pools, poolById, eras, eraById, positions, formations, fit, strength, season,
+  tierClass, eraAdjustment, positionPenalty, freshState, hydrateState, startDraft, pickPlayer, reroll, networkState } from './data.js';
+import { request, validatePublicConfig } from './multiplayer.js';
+
+const $ = id => document.getElementById(id);
+const storage = 'era-fc-v2';
+const read = (key, fallback, source = localStorage) => { try { return JSON.parse(source.getItem(key)) ?? fallback; } catch { return fallback; } };
+let s = hydrateState(read(storage, null));
+let selected = s.picks.findIndex(p => !p), filter = '全部';
+let room = null, timer = null, remote = null, busy = false, polling = false, shownResult = false;
+let pendingState = null, sending = false, roomGeneration = 0, roomMessage = '';
+let config = { ...cloudConfig, ...read('era-fc-cloud', {}) };
+let authSession = read('era-fc-auth-v2', null, sessionStorage);
+const esc = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const onlineLocked = () => Boolean(room && s.picks.every(Boolean));
+const slots = () => [...positions(s.formation), ...Array(5).fill('SUB')];
+function modal(html) { $('modal-body').innerHTML = html; if (!$('modal').open) $('modal').showModal(); }
+function notify(t) { modal(`<h2>提示</h2><p>${esc(t)}</p>`); }
+function status(t) { roomMessage = t; $('room-status').textContent = t; if ($('status')) $('status').textContent = t; }
+function save() {
+  localStorage.setItem(storage, JSON.stringify(s)); render();
+  if (room) { pendingState = networkState(s); flush(); }
+}
+function adjustments(p, pos) {
+  const a = eraAdjustment(p, s.targetEra), penalty = positionPenalty(p, pos);
+  return `基础 ${p.rating} · 位置 −${penalty} · 年代 −${a.penalty} = ${fit(p, pos, s.targetEra)}；${a.reason}`;
+}
+function initials(name) { return name.split(/[\s-]+/).map(w => w[0]).slice(0, 2).join('').toUpperCase(); }
+function slot(p, i, pos, xy) {
+  const title = p ? `${p.name} · ${p.positions.join('/')} · ${adjustments(p, pos)}` : `选择 ${pos} 位置`;
+  return `<button class="slot ${p ? tierClass(p.tier) : ''} ${selected === i ? 'selected' : ''}" data-slot="${i}" ${xy ? `style="left:${xy[0]}%;top:${xy[1]}%"` : ''} title="${esc(title)}" aria-label="${esc(title)}">
+    ${p ? `<em>${fit(p, pos, s.targetEra)}</em><b>${esc(p.name)}</b><small>${pos} · ${p.tier}</small><small class="player-positions">${p.positions.join('/')}</small>` : `<span class="plus">＋</span><small>${pos}</small>`}</button>`;
+}
+function render() {
+  const pool = poolById(s.pool);
+  $('wc').classList.toggle('active', s.mode === 'world_cup'); $('ucl').classList.toggle('active', s.mode === 'ucl');
+  $('formation').value = s.formation; $('formation').disabled = onlineLocked();
+  let index = 0;
+  $('pitch').innerHTML = formations[s.formation].map((row, r) => row.map((pos, c) => slot(s.picks[index], index++, pos, [100 * (c + 1) / (row.length + 1), 14 + r * 24])).join('')).join('');
+  $('bench').innerHTML = s.picks.slice(11).map((p, i) => slot(p, i + 11, 'SUB')).join('');
+  document.querySelectorAll('[data-slot]').forEach(el => el.onclick = () => {
+    if (!s.started) return setupUI();
+    const i = +el.dataset.slot;
+    if (s.picks[i]) return playerDetail(i);
+    selected = i; render();
+  });
+  $('count').textContent = `${s.picks.filter(Boolean).length} / 16`;
+  $('rating').textContent = s.picks.slice(0, 11).some(Boolean) ? strength(s).toFixed(1) : '—';
+  $('team-name').textContent = pool?.team || '选择你的征战年代'; $('crest').textContent = pool?.flag || '⚽';
+  $('era').textContent = pool ? `ERA / ${pool.era} · ${eraById(pool.eraId).label}` : '开启一场跨年代选秀';
+  $('mode-label').textContent = s.mode === 'ucl' ? 'EUROPEAN CUP / CHAMPIONS LEAGUE' : 'FIFA WORLD CUP';
+  $('rerolls').textContent = `剩余 ${s.rerolls} / 3 次`;
+  $('roll').disabled = !s.started || s.rerolls === 0 || s.picks.every(Boolean);
+  $('simulate').disabled = s.picks.some(p => !p);
+  $('simulate').textContent = room ? '查看联机决赛 ↗' : '模拟赛季 ↗';
+  $('pool-count').textContent = pool ? `${pool.players.length} 位球员` : `${pools.filter(p => p.mode === s.mode).length} 支年代球队`;
+  $('era-settings').innerHTML = `<div class="setup-summary"><span class="eyebrow">MATCH ERA</span><strong>${s.started ? `${eraById(s.targetEra).label} · 已锁定` : '赛前选择征战年代'}</strong><span>${s.started ? `排除 ${s.excludedEras.length} 个年代 · ${12 - s.excludedEras.length} 个年代可抽选` : '12 个年代 · 可排除不想抽到的年代'}</span></div><button id="era-open">${s.started ? '查看本局设置' : '设置并开始选秀 →'}</button>`;
+  $('era-open').onclick = setupUI;
+  $('filters').innerHTML = ['全部', '前锋', '中场', '后卫', '门将'].map(f => `<button class="${f === filter ? 'active' : ''}" data-filter="${f}">${f}</button>`).join('');
+  document.querySelectorAll('[data-filter]').forEach(b => b.onclick = () => { filter = b.dataset.filter; render(); });
+  const groups = { '前锋': ['ST', 'LW', 'RW'], '中场': ['CM', 'CAM', 'CDM', 'LM', 'RM'], '后卫': ['LB', 'RB', 'CB'], '门将': ['GK'] };
+  const pos = selected >= 0 ? slots()[selected] : 'SUB';
+  $('players').innerHTML = pool ? pool.players.filter(p => filter === '全部' || p.positions.some(v => groups[filter].includes(v))).sort((a, b) => b.rating - a.rating).map(p => {
+    const taken = s.picks.some(x => x?.identity === p.identity), adj = eraAdjustment(p, s.targetEra);
+    return `<button class="player-card ${tierClass(p.tier)}" data-player="${esc(p.id)}" ${taken || onlineLocked() ? 'disabled' : ''} title="${esc(adjustments(p, pos))}">
+      <span class="avatar" aria-hidden="true"><span class="portrait-fallback">${initials(p.name)}</span></span><span class="player-info"><span class="name">${esc(p.name)}</span><small class="player-positions">${p.positions.join(' / ')}</small><small>${p.rating} 基础 · ${taken ? '已入队' : `${fit(p, pos, s.targetEra)} 适配 ${pos}`}</small>${adj.penalty ? `<small class="adjustment">年代适应 −${adj.penalty}</small>` : ''}</span><span class="tier">${p.tier}</span></button>`;
+  }).join('') : '<p class="hint">先确定本局征战年代，再开始抽取球队和球员。</p>';
+  document.querySelectorAll('[data-player]').forEach(b => b.onclick = () => {
+    try { s = pickPlayer(s, b.dataset.player, selected); selected = s.picks.findIndex(p => !p); save(); }
+    catch (e) { notify(e.message); }
+  });
+}
+function setupUI() {
+  const locked = s.started;
+  modal(`<span class="eyebrow">BEFORE KICK-OFF</span><h2>${locked ? '本局年代设置已锁定' : '这支球队，将在哪个年代征战？'}</h2>
+    <p>征战年代决定比赛的战术环境。下方 Lock 只排除抽选来源，不会改变征战年代。</p>
+    <label for="target-era">征战年代</label><select id="target-era" ${locked ? 'disabled' : ''}>${eras.map(e => `<option value="${e.id}" ${e.id === s.targetEra ? 'selected' : ''}>${e.label}</option>`).join('')}</select>
+    <h3>排除球员年代 <small>可不选；至少保留一个</small></h3><div class="era-grid">${eras.map(e => `<label class="era-option ${s.excludedEras.includes(e.id) ? 'locked' : ''}"><input type="checkbox" name="excluded" value="${e.id}" ${s.excludedEras.includes(e.id) ? 'checked' : ''} ${locked ? 'disabled' : ''}><span>${e.label}</span><small>LOCK / 排除</small></label>`).join('')}</div>
+    <p class="hint">先等概率抽一个未排除年代，再抽该年代的一支球队。每次签下球员后自动抽下一组；同一球员跨年代不可重复入队。</p>
+    <p class="hint">年代扣分只针对特定战术角色，最多 3 分；多数球员不扣分。范戴克跨年代不扣分。评级与扣分均为游戏估值。</p>
+    <p id="setup-error" role="alert"></p><div class="setup-actions">${locked ? '<button id="setup-done" class="primary">继续本局</button>' : '<button id="start-draft" class="primary">锁定设置 · 开始选秀</button>'}</div>`);
+  document.querySelectorAll('input[name="excluded"]').forEach(input => input.onchange = () => input.closest('label').classList.toggle('locked', input.checked));
+  if (locked) $('setup-done').onclick = () => $('modal').close();
+  else $('start-draft').onclick = () => {
+    try {
+      s = startDraft(s, $('target-era').value, [...document.querySelectorAll('input[name="excluded"]:checked')].map(i => i.value));
+      selected = 0; filter = '全部'; save(); $('modal').close();
+    } catch (e) { $('setup-error').textContent = e.message; }
+  };
+}
+function playerDetail(i) {
+  const p = s.picks[i], pos = slots()[i];
+  modal(`<h2>${esc(p.name)} <span class="tier">${p.tier}</span></h2><p>${esc(p.team)} · ${p.era} · 完全适应位置 ${p.positions.join(' / ')}</p>
+    <div class="rating-details">${esc(adjustments(p, pos))}</div><p class="profile-note">${esc(eraAdjustment(p, s.targetEra).reason)}。跨年代模拟属于游戏设定，并非对球员真实表现的预测。</p>
+    ${onlineLocked() ? '<p>阵容已提交决赛，本局无法再调整。</p>' : `<label for="move-slot">调整位置（有球员时交换）</label><select id="move-slot">${slots().map((v, n) => `<option value="${n}" ${n === i ? 'selected' : ''}>${n + 1}. ${v} ${s.picks[n] ? esc(s.picks[n].name) : '空位'}</option>`).join('')}</select><div class="setup-actions"><button id="move-player" class="primary">确认调整</button><button id="remove-player">移出阵容</button></div>`}`);
+  if (!onlineLocked()) {
+    $('move-player').onclick = () => { const to = +$('move-slot').value; [s.picks[i], s.picks[to]] = [s.picks[to], s.picks[i]]; selected = s.picks.findIndex(p => !p); save(); $('modal').close(); };
+    $('remove-player').onclick = () => { s.picks[i] = null; selected = i; save(); $('modal').close(); };
+  }
+}
+function reset(mode = s.mode) {
+  if (room) return notify('请先在联机面板离开当前房间，再开启新一局。');
+  if (s.started && !confirm('开启新一局会清空当前阵容并重新选择年代，继续吗？')) return;
+  s = freshState(mode); selected = 0; filter = '全部'; save(); setupUI();
+}
+$('close').onclick = () => $('modal').close();
+$('setup').onclick = setupUI;
+$('roll').onclick = () => { try { s = reroll(s); save(); } catch (e) { notify(e.message); } };
+$('formation').onchange = e => { if (!onlineLocked()) { s.formation = e.target.value; save(); } };
+$('wc').onclick = () => s.mode !== 'world_cup' && reset('world_cup');
+$('ucl').onclick = () => s.mode !== 'ucl' && reset('ucl');
+$('reset').onclick = () => reset();
+$('rules').onclick = () => modal(`<h2>更多年代，更多选择</h2><p>收录 ${pools.length} 支年代球队、${pools.reduce((n, p) => n + p.players.length, 0)} 条球员年代记录，覆盖 12 个年代区间。球员库为精选真实阵容，非完整官方注册名单；评分参考该赛季表现，属于人工估值。</p>
+  <div class="tier-legend">${[['S+', '99–100'], ['S', '94–98'], ['A', '88–93'], ['B', '82–87'], ['C', '75–81'], ['D', '1–74']].map(([t, r]) => `<span class="${tierClass(t)}">${t} ${r}</span>`).join('')}</div><p>每支来源球队最多 3 名 S／S+ 球员；玩家跨球队组建的梦之队不受该数量限制。边框显示基础评级，适配后的能力在球员卡与阵容中显示。</p>
+  <p>球员的多个首选位置全部不扣分；邻近位置扣 4 分，其他外场位置扣 12 分，门将错位扣 45 分。年代调整另外扣 0–3 分。点击阵中球员查看计算、换位或移除。</p>
+  <p>赛前确定征战年代及排除年代，开局后锁定。本地赛季为简化 6 轮联赛、半决赛与决赛；替补暂不自动换人。联机双方共享年代规则，签满 16 人后自动提交并锁定阵容；服务端生成双方共同的决赛结果。</p>
+  <p>角色适配参考公开历史比赛位置资料；跨年代结果无法客观测量。<a href="docs/era-research.md" target="_blank" rel="noopener">研究来源与建模说明 ↗</a></p>`);
+$('simulate').onclick = () => {
+  if (s.picks.some(p => !p)) return;
+  if (room) { if (remote?.result) showResult(remote.result); else onlineUI(); return; }
+  const results = season(s), semi = results[6];
+  const qualified = semi.home > semi.away || semi.penalties === '点球胜', played = qualified ? results : results.slice(0, 7);
+  const last = played.at(-1), win = qualified && (last.home > last.away || last.penalties === '点球胜');
+  modal(`<div class="trophy">${win ? '🏆' : '⚽'}</div><h2>${win ? '你的梦之队，登上巅峰！' : qualified ? '决赛惜败，传奇仍在继续' : '半决赛止步，再战下个赛季'}</h2><p>征战 ${eraById(s.targetEra).label} · 适配评分 ${strength(s).toFixed(1)} · 实力与随机因素共同决定赛果</p>${played.map(m => `<div class="match"><span>${m.stage} · 对手 ${m.opponent}</span><b>${m.home} : ${m.away} ${m.penalties || ''}</b></div>`).join('')}`);
+};
+
+let authPending = null, sessionExpired = false;
+async function auth() {
+  if (sessionExpired && room) throw Error('登录已过期，请离开当前房间并创建新房间。');
+  if (authSession?.url === config.url && authSession.expires_at * 1000 > Date.now() + 60000) return;
+  if (authPending) return authPending;
+  authPending = (async () => {
+    let result;
+    if (authSession?.url === config.url && authSession.refresh_token) {
+      try {
+        result = await request(config, '/auth/v1/token?grant_type=refresh_token', { refresh_token: authSession.refresh_token });
+      } catch (e) {
+        if (e.status !== 400 && e.status !== 401 && e.status !== 403) throw e;
+        authSession = null; sessionStorage.removeItem('era-fc-auth-v2');
+        if (room) { sessionExpired = true; throw Error('登录已过期，请离开当前房间并创建新房间。'); }
+      }
+    }
+    if (!result) result = await request(config, '/auth/v1/signup', {});
+    if (!result.access_token) throw Error('匿名登录未成功，请检查项目的 Anonymous Sign-Ins 设置。');
+    sessionExpired = false;
+    authSession = { ...result, expires_at: result.expires_at || Math.floor(Date.now() / 1000) + result.expires_in, url: config.url };
+    sessionStorage.setItem('era-fc-auth-v2', JSON.stringify(authSession));
+  })();
+  try { await authPending; } finally { authPending = null; }
+}
+async function rpc(name, body) { await auth(); return request(config, `/rest/v1/rpc/${name}`, body, authSession.access_token); }
+function onlineUI() {
+  modal(`<h2>联机 · 和朋友争夺冠军</h2><p>房主先完成赛前设置，双方将使用同样的征战年代与排除年代。选满 16 人后阵容锁定，自动进入共同决赛。</p>
+    ${room ? '' : '<input id="code" aria-label="房间码" placeholder="朋友的 8 位房间码" maxlength="8">'}
+    <div class="setup-actions">${room ? '<button id="leave">离开房间</button>' : '<button class="primary" id="create">创建房间</button><button id="join">加入房间</button>'}</div>
+    <p id="status" role="status">${esc(roomMessage || '尚未连接，可以先玩本地选秀。')}</p><details><summary>连接设置</summary><label for="url">项目 URL</label><input id="url" value="${esc(config.url)}" ${room ? 'disabled' : ''}><label for="key">Publishable / anon public key</label><input id="key" value="${esc(config.key)}" ${room ? 'disabled' : ''}></details>
+    <p class="hint">每 2 秒同步。朋友间试玩版本；同一浏览器测试请使用独立无痕窗口。离开后不自动释放旧房间名额，新一局请创建新房间。</p>`);
+  if (room) $('leave').onclick = () => { disconnect(); notify('已离开房间。可以继续本地选秀，或重新开始。'); };
+  else { $('create').onclick = () => connect(true); $('join').onclick = () => connect(false); }
+}
+$('online').onclick = onlineUI;
+function disconnect() {
+  roomGeneration++; clearInterval(timer); timer = null; room = null; remote = null; pendingState = null; shownResult = false;
+  sessionExpired = false; status(''); render();
+}
+async function connect(create) {
+  if (busy || room) return;
+  if (create && !s.started) { setupUI(); return; }
+  const code = $('code')?.value.trim().toUpperCase() || '';
+  if (!create && !/^[A-F0-9]{8}$/.test(code)) return status('请输入 8 位房间码。');
+  if (s.picks.some(Boolean) && !confirm('进入联机会开始新的阵容。房主保留本局年代规则，加入者采用房主规则。继续吗？')) return;
+  busy = true;
+  try {
+    config = validatePublicConfig({ url: $('url').value, key: $('key').value });
+    localStorage.setItem('era-fc-cloud', JSON.stringify(config));
+    $('create').disabled = true; $('join').disabled = true; status('正在连接…');
+    const d = await rpc('fc_connect', { p_code: create ? null : code, p_mode: s.mode });
+    room = d.code; roomGeneration++; shownResult = false;
+    let targetEra = s.targetEra, excludedEras = s.excludedEras;
+    if (!create) {
+      const initial = await rpc('fc_read', { p_code: room });
+      const host = initial.members.find(m => m.host)?.state;
+      if (!host?.started || host.version !== 2) throw Error('房主的年代规则尚未同步，或使用了旧版网页。请双方刷新后创建新房间。');
+      targetEra = host.targetEra; excludedEras = host.excludedEras;
+    }
+    s = startDraft(freshState(d.mode), targetEra, excludedEras); selected = 0; filter = '全部';
+    await rpc('fc_submit', { p_code: room, p_state: networkState(s) });
+    localStorage.setItem(storage, JSON.stringify(s)); render();
+    status(`房间 ${room} · 征战 ${eraById(s.targetEra).label} · 将房间码发给朋友。`);
+    timer = setInterval(() => { flush(); poll(); }, 2000);
+    onlineUI();
+  } catch (e) {
+    if (room) disconnect();
+    status(`连接失败：${e.message}`);
+    if ($('create')) { $('create').disabled = false; $('join').disabled = false; }
+  } finally { busy = false; }
+}
+async function flush() {
+  if (sending || !room || !pendingState) return;
+  sending = true;
+  const generation = roomGeneration, code = room, snapshot = pendingState; pendingState = null;
+  try { await rpc('fc_submit', { p_code: code, p_state: snapshot }); }
+  catch (e) { if (generation === roomGeneration) { pendingState ||= snapshot; status(`房间 ${room} · 同步失败，将自动重试：${e.message}`); } }
+  finally { sending = false; }
+}
+async function poll() {
+  if (polling || !room) return;
+  polling = true; const generation = roomGeneration;
+  try {
+    const d = await rpc('fc_read', { p_code: room });
+    if (generation !== roomGeneration) return;
+    remote = d;
+    const ready = d.members.filter(m => m.state?.picks?.filter(Boolean).length === 16).length;
+    if (!pendingState) status(`房间 ${room} · ${d.members.length}/2 人已加入 · ${ready}/2 阵容完成 · 征战 ${eraById(s.targetEra).label}`);
+    if (d.result && !shownResult) { shownResult = true; showResult(d.result); }
+  } catch (e) { if (generation === roomGeneration) status(`房间 ${room} · 暂未同步：${e.message}`); }
+  finally { polling = false; }
+}
+function showResult(result) {
+  modal(`<div class="trophy">🏆</div><h2>联机决赛 · ${eraById(s.targetEra).label}</h2><p>房主 ${Number(result.home)} : ${Number(result.away)} 客队</p><p>${esc(result.penalties || '')}</p><p>双方按位置与年代调整后的首发能力参赛，赛果由服务端统一保存。</p>`);
+}
 render();
