@@ -11,7 +11,7 @@ const original = readFileSync(new URL('../supabase/multiplayer.sql',import.meta.
 const legacy = original.slice(original.indexOf('create or replace function public.fc_submit('),original.indexOf('revoke all on function')).replace('select * into r from fc_rooms where code=p_code for update;', "select * into r from fc_rooms where code=p_code for update;\n if r.rules_version=3 then raise exception 'FC_RULES_V3_REQUIRED'; end if;");
 const template=readFileSync(new URL('../supabase/upgrade-spin-locks.template.sql',import.meta.url),'utf8');
 writeFileSync(new URL('../supabase/upgrade-spin-locks.sql',import.meta.url),template.replace('-- @CATALOG@',()=>catalog).replace('-- @LEGACY_SUBMIT@',()=>legacy));
-console.log(`Built protocol 3 migration: ${players.length} player versions, ${chemistryPairs.length} pairs, ${chemistryTrios.length} starting-XI trios.`);
+console.log(`Built protocol 3 migration: ${players.length} player versions, ${chemistryPairs.length} pairs, ${chemistryTrios.length} roster-wide trios.`);
 
 const root=new URL('../supabase/',import.meta.url);
 writeFileSync(new URL('upgrade-all-v4.sql',root),readFileSync(new URL('upgrade-spin-locks.sql',root),'utf8')+'\n'+readFileSync(new URL('season-v4.sql',root),'utf8'));

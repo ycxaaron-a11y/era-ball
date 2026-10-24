@@ -2377,7 +2377,7 @@ insert into public.fc_chemistry_pairs(id,left_identity,right_identity,bonus) val
 insert into public.fc_chemistry_trios(id,identities,bonus_mode,bonus) values ('bbc',ARRAY['cristiano-ronaldo','gareth-bale','karim-benzema'],'flat',5),('msn',ARRAY['lionel-messi','neymar','luis-suarez'],'flat',5),('dutch-three',ARRAY['ruud-gullit','marco-van-basten','frank-rijkaard'],'percent',5) on conflict(id) do update set identities=excluded.identities,bonus_mode=excluded.bonus_mode,bonus=excluded.bonus;
 
 create or replace function public.fc_protocol_v3() returns jsonb language sql security definer set search_path=public,pg_temp as $$
- select jsonb_build_object('version',3,'chemistry_version',2,'rating_version',8,'room_version',9,'catalog_count',(select count(*) from fc_player_catalog));
+ select jsonb_build_object('version',3,'chemistry_version',3,'rating_version',8,'room_version',9,'catalog_count',(select count(*) from fc_player_catalog));
 $$;
 create or replace function public._fc_connect_rules(p_code text,p_mode text,p_rules integer)
 returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$
@@ -2452,9 +2452,9 @@ begin
  end if;
  select least(3,coalesce(sum(bonus),0)) into chemistry from fc_chemistry_pairs
   where (left_identity=c.identity or right_identity=c.identity) and left_identity=any(p_identities) and right_identity=any(p_identities);
- if c.identity=any(p_starters) then
+ if c.identity=any(p_identities) then
   select coalesce(max(case when bonus_mode='percent' then round(c.base_rating*bonus/100.0)::integer else bonus end),0) into trio_bonus
-   from fc_chemistry_trios where c.identity=any(identities) and identities<@p_starters;
+   from fc_chemistry_trios where c.identity=any(identities) and identities<@p_identities;
   chemistry=greatest(chemistry,trio_bonus);
  end if;
  return greatest(15,c.base_rating+chemistry-pos_loss-era_loss);

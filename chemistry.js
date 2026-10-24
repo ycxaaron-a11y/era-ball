@@ -26,14 +26,14 @@ export function activeChemistry(picks) {
   return chemistryPairs.filter(pair=>pair.players.every(id=>identities.has(id)));
 }
 export function activeTrios(picks){
- const starters=new Set(picks.slice(0,11).filter(Boolean).map(p=>p.identity));
- return chemistryTrios.filter(trio=>trio.players.every(id=>starters.has(id)));
+ const identities=new Set(picks.filter(Boolean).map(p=>p.identity));
+ return chemistryTrios.filter(trio=>trio.players.every(id=>identities.has(id)));
 }
 export function chemistryBonuses(picks) {
   const result = new Map();
   for (const pair of activeChemistry(picks)) for (const id of pair.players) result.set(id,Math.min(chemistryCap,(result.get(id)||0)+pair.bonus));
   for(const trio of activeTrios(picks))for(const id of trio.players){
-   const player=picks.slice(0,11).find(p=>p?.identity===id),bonus=trio.mode==='percent'?Math.round(player.rating*trio.bonus/100):trio.bonus;
+   const player=picks.find(p=>p?.identity===id),bonus=trio.mode==='percent'?Math.round(player.rating*trio.bonus/100):trio.bonus;
    result.set(id,Math.max(result.get(id)||0,bonus));
   }
   return result;

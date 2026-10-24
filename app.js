@@ -146,8 +146,8 @@ function renderChemistry(){
   const trios=activeTrios(s.picks),pairs=activeChemistry(s.picks).filter(pair=>!trios.some(t=>pair.players.every(id=>t.players.includes(id))));
   const label=t=>t.mode==='percent'?`三人各 +${t.bonus}%`:`三人各 +${t.bonus}`;
   const names=t=>t.players.map(id=>esc(playerNames.get(id))).join(' × ');
-  $('chemistry-panel').innerHTML=`<div class="chemistry-heading"><b>🔗 阵容羁绊 <span>${pairs.length+trios.length} 组</span></b><button id="chemistry-help">查看搭档</button></div>${trios.map(t=>`<div class="chemistry-trio"><b>${t.name} · ${label(t)}</b><span>${names(t)}</span><small>三人同时首发 · 与双人加成取较高值</small></div>`).join('')}${pairs.map(p=>`<div class="chemistry-link"><span>${names(p)}</span><small>双方 +${p.bonus}</small></div>`).join('')}${pairs.length+trios.length?'':'<p class="hint">双人搭档各 +2；BBC / MSN 三人同时首发各 +5，荷兰三剑客各 +5%。</p>'}`;
-  $('chemistry-help').onclick=()=>modal(`<h2>历史搭档 · 阵容羁绊</h2><p>双人搭档首发或替补均可激活，双方各 +2，双人加成每人最多 +3。BBC、MSN、荷兰三剑客须三人同时在首发 11 人内：BBC / MSN 各加 5 分；荷兰三剑客按每人初始能力加 5%，四舍五入为整数。三人加成与双人加成取较高值，不重复叠加；随后结算位置与年代扣分，基础能力上限 110，羁绊后的实际能力不封顶。</p>${chemistryTrios.map(t=>`<div class="chemistry-trio"><b>${t.name} · ${label(t)}</b><span>${names(t)}</span><small>三人同时首发</small></div>`).join('')}${chemistryPairs.map(p=>`<div class="chemistry-link"><span>${names(p)}</span><small>${p.name} · +${p.bonus}</small></div>`).join('')}<p>不同球队／年代版本也可搭配。依据真实同队经历，数值属于游戏设定。<a href="docs/chemistry-research.md" target="_blank" rel="noopener">历史比赛依据与规则说明 ↗</a></p>`);
+  $('chemistry-panel').innerHTML=`<div class="chemistry-heading"><b>🔗 阵容羁绊 <span>${pairs.length+trios.length} 组</span></b><button id="chemistry-help">查看搭档</button></div>${trios.map(t=>`<div class="chemistry-trio"><b>${t.name} · ${label(t)}</b><span>${names(t)}</span><small>三人同队，含替补与错位 · 与双人加成取较高值</small></div>`).join('')}${pairs.map(p=>`<div class="chemistry-link"><span>${names(p)}</span><small>双方 +${p.bonus}</small></div>`).join('')}${pairs.length+trios.length?'':'<p class="hint">双人搭档各 +2；BBC / MSN 三人同队，含替补与错位各 +5，荷兰三剑客各 +5%。</p>'}`;
+  $('chemistry-help').onclick=()=>modal(`<h2>历史搭档 · 阵容羁绊</h2><p>双人搭档首发或替补均可激活，双方各 +2，双人加成每人最多 +3。BBC、MSN、荷兰三剑客只需三人都在本队 16 人名单内，首发、替补和错位均可激活：BBC / MSN 各加 5 分；荷兰三剑客按每人初始能力加 5%，四舍五入为整数。三人加成与双人加成取较高值，不重复叠加；随后结算位置与年代扣分，基础能力上限 110，羁绊后的实际能力不封顶。</p>${chemistryTrios.map(t=>`<div class="chemistry-trio"><b>${t.name} · ${label(t)}</b><span>${names(t)}</span><small>三人同队，含替补与错位</small></div>`).join('')}${chemistryPairs.map(p=>`<div class="chemistry-link"><span>${names(p)}</span><small>${p.name} · +${p.bonus}</small></div>`).join('')}<p>不同球队／年代版本也可搭配。依据真实同队经历，数值属于游戏设定。<a href="docs/chemistry-research.md" target="_blank" rel="noopener">历史比赛依据与规则说明 ↗</a></p>`);
 }
 
 function setupUI(afterStart=null) {
@@ -367,7 +367,7 @@ function roomMembers(){
 }
 async function checkConnection(){
  if(busy)return;busy=true;for(const id of ['check-connection','create','join'])if($(id))$(id).disabled=true;
- try{config=validatePublicConfig({url:$('url').value,key:$('key').value});localStorage.setItem('era-fc-cloud',JSON.stringify(config));status('正在检查匿名登录…');await auth();status('匿名登录正常，正在检查联机数据库…');const capability=await rpc('fc_protocol_v3',{});if(Number(capability.room_version||0)<9||Number(capability.catalog_count)<pools.reduce((n,p)=>n+p.players.length,0))throw Error('数据库升级尚未完成，请运行最新完整 SQL。');status('连接检查通过，可以创建房间或加入朋友的房间。');}
+ try{config=validatePublicConfig({url:$('url').value,key:$('key').value});localStorage.setItem('era-fc-cloud',JSON.stringify(config));status('正在检查匿名登录…');await auth();status('匿名登录正常，正在检查联机数据库…');const capability=await rpc('fc_protocol_v3',{});if(Number(capability.room_version||0)<9||Number(capability.chemistry_version||0)<3||Number(capability.catalog_count)<pools.reduce((n,p)=>n+p.players.length,0))throw Error('数据库升级尚未完成，请运行最新完整 SQL。');status('连接检查通过，可以创建房间或加入朋友的房间。');}
  catch(e){status(readableError(e));if(e.code==='PGRST202'||e.message?.includes('数据库升级'))showUpgradeHelp();}
  finally{busy=false;for(const id of ['check-connection','create','join'])if($(id))$(id).disabled=false;}
 }
@@ -436,7 +436,7 @@ async function connect(create) {
   try{
     config=validatePublicConfig({url:$('url').value,key:$('key').value});localStorage.setItem('era-fc-cloud',JSON.stringify(config));
     $('create').disabled=true;$('join').disabled=true;status('正在连接…');
-    try{const capability=await rpc('fc_protocol_v3',{});if(Number(capability.room_version||0)<9||Number(capability.rating_version||0)<8||Number(capability.chemistry_version||0)<2||Number(capability.catalog_count)<pools.reduce((n,p)=>n+p.players.length,0))throw Error('新增赛事、队名及多人联机需要执行一次数据库升级 SQL。');}catch(e){if(e.code==='PGRST202'||e.status===404)throw Error('新联机规则需要执行一次数据库升级 SQL。');throw e;}
+    try{const capability=await rpc('fc_protocol_v3',{});if(Number(capability.room_version||0)<9||Number(capability.rating_version||0)<8||Number(capability.chemistry_version||0)<3||Number(capability.catalog_count)<pools.reduce((n,p)=>n+p.players.length,0))throw Error('同队羁绊新规则需要执行一次数据库升级 SQL。');}catch(e){if(e.code==='PGRST202'||e.status===404)throw Error('新联机规则需要执行一次数据库升级 SQL。');throw e;}
     preferredCapacity=Number($('capacity')?.value||preferredCapacity);
     if(create)validateRoomPool(s,preferredCapacity);
     const d=create?await rpc('fc_create_room_v9',{p_mode:s.mode,p_capacity:preferredCapacity}):await rpc('fc_connect_v3',{p_code:code,p_mode:s.mode});
