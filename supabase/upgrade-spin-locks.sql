@@ -1111,6 +1111,7 @@ begin
  actual_formation=coalesce(p_state->>'lineupFormation',p_state->>'formation');
  shape=case actual_formation
   when '4-3-3' then array['LW','ST','RW','CM','CDM','CM','LB','CB','CB','RB','GK']
+  when '4-3-3-attacking' then array['LW','ST','RW','CAM','CM','CM','LB','CB','CB','RB','GK']
   when '4-4-2' then array['ST','ST','LM','CM','CM','RM','LB','CB','CB','RB','GK']
   when '4-2-4' then array['LW','ST','ST','RW','CM','CM','LB','CB','CB','RB','GK']
   when '3-5-2' then array['ST','ST','LM','CM','CDM','CM','RM','CB','CB','CB','GK']

@@ -7,7 +7,7 @@ import { playerSilhouette, splusLightning, placementImpact } from './effects.js'
 import { positionName, positionList, heightLabel } from './display.js';
 import { candidateFor, selectCandidate, placeCandidate } from './placement.js';
 import { cloudConfig } from './config.js';
-import { pools, poolById, eras, eraById, positions, formations, fit, strength,
+import { pools, poolById, eras, eraById, positions, formations, formationChoices, formationName, fit, strength,
   playerAbility, playerTier, availablePools, spinDraft, formationLayout, tierClass, eraAdjustment, positionPenalty, freshState, hydrateState, startDraft, reroll, networkState } from './data.js';
 import { request, validatePublicConfig } from './multiplayer.js';
 
@@ -53,6 +53,7 @@ function slot(p, i, pos, xy) {
 function render() {
   const pool = poolById(s.pool);
   $('wc').classList.toggle('active', s.mode === 'world_cup'); $('ucl').classList.toggle('active', s.mode === 'ucl');
+  $('formation').innerHTML = formationChoices.map(f=>`<option value="${f}">${formationName(f)}</option>`).join('') + (formationChoices.includes(s.formation)?'':`<option value="${s.formation}" hidden>旧存档阵型（可重新选择）</option>`);
   $('formation').value = s.formation; $('formation').disabled = onlineLocked() || uiBusy();
   for (const id of ['wc','ucl','setup','reset','online','era-open']) if($(id)) $(id).disabled=uiBusy();
   renderChemistry();
@@ -366,7 +367,7 @@ async function commitRoster(next, impactIndex = null) {
     if(e.message?.includes('FC_STALE_STATE')){
       try { const latest=await rpc('fc_read_v3',{p_code:room});const mine=latest.members.find(m=>m.is_self);if(mine?.state){s=hydrateState(mine.state);serverRevision=mine.revision;} }catch{}
     }
-    status(readableError(e));notify(readableError(e));
+    if(e.message?.includes('FC_INVALID_FORMATION')){onlineUI();status('新进攻阵型需要更新数据库，请运行最新合并升级 SQL 后重试。');showUpgradeHelp();}else{status(readableError(e));notify(readableError(e));}
   } finally {committing=false;render();}
 }
 async function connect(create) {
@@ -419,7 +420,7 @@ function showUpgradeHelp(){
   const p=document.createElement('p');p.className='hint';p.innerHTML='<a href="supabase/upgrade-all-v5.sql" target="_blank" rel="noopener">打开合并升级 SQL（含全部历史升级）</a> · <button id="copy-upgrade">复制升级 SQL</button>，粘贴到 Supabase SQL Editor 后运行，再重新连接。';$('status').after(p);
   $('copy-upgrade').onclick=async()=>{try{const r=await fetch('supabase/upgrade-all-v5.sql');if(!r.ok)throw Error();await navigator.clipboard.writeText(await r.text());$('copy-upgrade').textContent='已复制';}catch{$('copy-upgrade').textContent='请打开链接复制原文';}};
 }
-$('formation').innerHTML = Object.keys(formations).map(f => `<option value="${f}">${f}</option>`).join('');
+$('formation').innerHTML = formationChoices.map(f => `<option value="${f}">${formationName(f)}</option>`).join('');
 render();
 
 if(location.hash==='#season'&&s.picks.every(Boolean)){

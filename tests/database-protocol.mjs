@@ -53,13 +53,13 @@ try{
  const stored=(await rpc(a,'fc_read_v3',[chem.code])).members.find(m=>m.is_self).state;
  for(let i=0;i<11;i++)if(chem.states[0].picks[i])assert.equal(stored.picks[i].rating,playerAbility(chem.states[0],chem.states[0].picks[i],positions(chem.states[0].formation)[i]));
  console.log('PASS SQL: server recomputes chemistry, cap, positions and ratings; ignores tampered client scores');
- const final=await room('ucl');final.states[0].formation='4-2-3-1';final.states[1].formation='3-4-1-2';
+ const final=await room('ucl');final.states[0].formation='4-2-3-1';final.states[1].formation='4-3-3-attacking';
  for(let slot=0;slot<16;slot++)for(let i=0;i<2;i++){
   const read=await rpc([a,b][i],'fc_read_v3',[final.code]),blocked=read.locks.filter(l=>!l.mine).map(l=>l.player_id);
   const ready=spinDraft(final.states[i],()=>0,blocked),person=pools.find(p=>p.id===ready.pool).players.find(p=>!blocked.includes(p.id)&&!ready.picks.some(x=>x?.identity===p.identity));
   await write(final,i,pickPlayer(ready,person.id,slot,Math.random,blocked));
  }
- const x=await rpc(a,'fc_read_v3',[final.code]),y=await rpc(b,'fc_read_v3',[final.code]);assert.ok(x.result);assert.deepEqual(x.result,y.result);
+ const x=await rpc(a,'fc_read_v3',[final.code]),y=await rpc(b,'fc_read_v3',[final.code]);assert.ok(x.result);assert.deepEqual(x.result,y.result);const attacking=x.members.find(m=>m.state.lineupFormation==='4-3-3-attacking').state;assert.equal(attacking.lineupFormation,'4-3-3-attacking');for(let i=0;i<11;i++)assert.equal(attacking.picks[i].rating,playerAbility(final.states[1],final.states[1].picks[i],positions('4-3-3-attacking')[i]));
  await db.exec(migration);assert.deepEqual((await rpc(a,'fc_read_v3',[final.code])).result,x.result);
  const initialSeason=await rpc(a,'fc_season_v4',[final.code,null]);assert.equal(initialSeason.cursor,0);await assert.rejects(rpc(outsider,'fc_season_v4',[final.code,null]),/Not a member/);await assert.rejects(rpc(a,'fc_season_v4',[r.code,null]),/FC_SEASON_WAITING/);const advanced=await Promise.all([rpc(a,'fc_season_v4',[final.code,0]),rpc(b,'fc_season_v4',[final.code,0])]);assert.equal(advanced[0].cursor,1);assert.equal(advanced[1].cursor,1);for(let i=1;i<6;i++)await rpc(a,'fc_season_v4',[final.code,i]);const complete=await rpc(b,'fc_season_v4',[final.code,6]);assert.equal(complete.cursor,6);assert.equal(complete.seed,initialSeason.seed);await db.exec(migration);assert.deepEqual(await rpc(a,'fc_season_v4',[final.code,null]),complete);console.log('PASS SQL: shared immutable season seed, atomic round advancement, permissions, completion cap and migration rerun');
  await db.query("update fc_rooms set season_v4=jsonb_set(season_v4,'{cursor}','5'::jsonb) where code=$1",[final.code]);
