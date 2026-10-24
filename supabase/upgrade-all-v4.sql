@@ -2305,7 +2305,7 @@ insert into public.fc_chemistry_pairs(id,left_identity,right_identity,bonus) val
 insert into public.fc_chemistry_trios(id,identities,bonus_mode,bonus) values ('bbc',ARRAY['cristiano-ronaldo','gareth-bale','karim-benzema'],'flat',5),('msn',ARRAY['lionel-messi','neymar','luis-suarez'],'flat',5),('dutch-three',ARRAY['ruud-gullit','marco-van-basten','frank-rijkaard'],'flat',5) on conflict(id) do update set identities=excluded.identities,bonus_mode=excluded.bonus_mode,bonus=excluded.bonus;
 
 create or replace function public.fc_protocol_v3() returns jsonb language sql security definer set search_path=public,pg_temp as $$
- select jsonb_build_object('version',3,'chemistry_version',4,'rating_version',8,'room_version',9,'catalog_count',(select count(*) from fc_player_catalog));
+ select jsonb_build_object('version',3,'chemistry_version',4,'rating_version',8,'room_version',10,'catalog_count',(select count(*) from fc_player_catalog));
 $$;
 create or replace function public._fc_connect_rules(p_code text,p_mode text,p_rules integer)
 returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$
@@ -2423,6 +2423,7 @@ begin
   when '4-3-3' then array['LW','ST','RW','CM','CDM','CM','LB','CB','CB','RB','GK']
   when '4-3-3-attacking' then array['LW','ST','RW','CAM','CM','CM','LB','CB','CB','RB','GK']
   when '4-4-2' then array['ST','ST','LM','CM','CM','RM','LB','CB','CB','RB','GK']
+  when '3-3-4' then array['LW','ST','ST','RW','CM','CM','CM','CB','CB','CB','GK']
   when '4-2-4' then array['LW','ST','ST','RW','CM','CM','LB','CB','CB','RB','GK']
   when '3-5-2' then array['ST','ST','LM','CM','CDM','CM','RM','CB','CB','CB','GK']
   when '4-2-3-1' then array['ST','LW','CAM','RW','CDM','CDM','LB','CB','CB','RB','GK']

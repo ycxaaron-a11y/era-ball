@@ -8,7 +8,7 @@ import { playerHeights } from '../player-heights.js';
 import { splusLightning, playerSilhouette } from '../effects.js';
 
 test('all six selectable formations and legacy shapes have eleven on-field players and one keeper; new layouts have attacking midfielders', () => {
-  assert.equal(formationChoices.length, 6);assert.ok(!formationChoices.includes('3-5-2'));assert.ok(!formationChoices.includes('3-4-1-2'));assert.deepEqual(positions('4-3-3-attacking').slice(3,6),['CAM','CM','CM']);
+  assert.equal(formationChoices.length, 6);assert.ok(!formationChoices.includes('4-4-2'));assert.ok(formationChoices.includes('3-3-4'));assert.deepEqual(positions('3-3-4'),['LW','ST','ST','RW','CM','CM','CM','CB','CB','CB','GK']);assert.ok(!formationChoices.includes('3-5-2'));assert.ok(!formationChoices.includes('3-4-1-2'));assert.deepEqual(positions('4-3-3-attacking').slice(3,6),['CAM','CM','CM']);
   for (const f of Object.keys(formations)) {
     const layout = formationLayout(f);
     assert.equal(layout.length, 11);assert.equal(positions(f).filter(p=>p==='GK').length, 1);
@@ -20,7 +20,7 @@ test('all six selectable formations and legacy shapes have eleven on-field playe
   assert.ok(positions('3-4-1-2').includes('LWB'));assert.ok(positions('3-4-1-2').includes('RWB'));
 });
 test('new formations submit through the existing RPC whitelist without losing the actual layout or scores', () => {
-  for (const formation of ['4-2-3-1','4-3-1-2','4-3-3-attacking']) {
+  for (const formation of ['3-3-4','4-2-3-1','4-3-1-2','4-3-3-attacking']) {
     const state=startSpunDraft(freshState(),'2020s',[],()=>0);state.formation=formation;
     state.picks=poolById(state.pool).players.slice(0,16);
     const payload=networkState(state);

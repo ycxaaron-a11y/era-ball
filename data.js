@@ -35,6 +35,7 @@ export const formations = {
   '4-3-3': [['LW', 'ST', 'RW'], ['CM', 'CDM', 'CM'], ['LB', 'CB', 'CB', 'RB'], ['GK']],
   '4-3-3-attacking': [['LW', 'ST', 'RW'], ['CAM'], ['CM', 'CM'], ['LB', 'CB', 'CB', 'RB'], ['GK']],
   '4-4-2': [['ST', 'ST'], ['LM', 'CM', 'CM', 'RM'], ['LB', 'CB', 'CB', 'RB'], ['GK']],
+  '3-3-4': [['LW', 'ST', 'ST', 'RW'], ['CM', 'CM', 'CM'], ['CB', 'CB', 'CB'], ['GK']],
   '4-2-4': [['LW', 'ST', 'ST', 'RW'], ['CM', 'CM'], ['LB', 'CB', 'CB', 'RB'], ['GK']],
   '3-5-2': [['ST', 'ST'], ['LM', 'CM', 'CDM', 'CM', 'RM'], ['CB', 'CB', 'CB'], ['GK']],
   '4-2-3-1': [['ST'], ['LW', 'CAM', 'RW'], ['CDM', 'CDM'], ['LB', 'CB', 'CB', 'RB'], ['GK']],
@@ -42,7 +43,7 @@ export const formations = {
   '3-4-1-2': [['ST', 'ST'], ['CAM'], ['LWB', 'CM', 'CM', 'RWB'], ['CB', 'CB', 'CB'], ['GK']]
 };
 // Keep legacy shapes readable for existing drafts and completed online seasons.
-export const formationChoices = ['4-3-3','4-3-3-attacking','4-4-2','4-2-4','4-2-3-1','4-3-1-2'];
+export const formationChoices = ['4-3-3','4-3-3-attacking','3-3-4','4-2-4','4-2-3-1','4-3-1-2'];
 export const formationName = f => f === '4-3-3-attacking' ? '4-3-3 进攻型' : f;
 export const positions = f => formations[f].flat();
 export function formationLayout(f) {

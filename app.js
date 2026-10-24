@@ -367,7 +367,7 @@ function roomMembers(){
 }
 async function checkConnection(){
  if(busy)return;busy=true;for(const id of ['check-connection','create','join'])if($(id))$(id).disabled=true;
- try{config=validatePublicConfig({url:$('url').value,key:$('key').value});localStorage.setItem('era-fc-cloud',JSON.stringify(config));status('正在检查匿名登录…');await auth();status('匿名登录正常，正在检查联机数据库…');const capability=await rpc('fc_protocol_v3',{});if(Number(capability.room_version||0)<9||Number(capability.chemistry_version||0)<4||Number(capability.catalog_count)<pools.reduce((n,p)=>n+p.players.length,0))throw Error('数据库升级尚未完成，请运行最新完整 SQL。');status('连接检查通过，可以创建房间或加入朋友的房间。');}
+ try{config=validatePublicConfig({url:$('url').value,key:$('key').value});localStorage.setItem('era-fc-cloud',JSON.stringify(config));status('正在检查匿名登录…');await auth();status('匿名登录正常，正在检查联机数据库…');const capability=await rpc('fc_protocol_v3',{});if(Number(capability.room_version||0)<10||Number(capability.chemistry_version||0)<4||Number(capability.catalog_count)<pools.reduce((n,p)=>n+p.players.length,0))throw Error('数据库升级尚未完成，请运行最新完整 SQL。');status('连接检查通过，可以创建房间或加入朋友的房间。');}
  catch(e){status(readableError(e));if(e.code==='PGRST202'||e.message?.includes('数据库升级'))showUpgradeHelp();}
  finally{busy=false;for(const id of ['check-connection','create','join'])if($(id))$(id).disabled=false;}
 }
@@ -423,7 +423,7 @@ async function commitRoster(next, impactIndex = null) {
     if(e.message?.includes('FC_STALE_STATE')){
       try { const latest=await rpc('fc_read_v3',{p_code:room});const mine=latest.members.find(m=>m.is_self);if(mine?.state){s=hydrateState(mine.state);serverRevision=mine.revision;} }catch{}
     }
-    if(e.message?.includes('FC_INVALID_FORMATION')){onlineUI();status('新进攻阵型需要更新数据库，请运行最新合并升级 SQL 后重试。');showUpgradeHelp();}else{status(readableError(e));notify(readableError(e));}
+    if(e.message?.includes('FC_INVALID_FORMATION')){onlineUI();status('新阵型需要更新数据库，请运行最新合并升级 SQL 后重试。');showUpgradeHelp();}else{status(readableError(e));notify(readableError(e));}
   } finally {committing=false;render();}
 }
 async function connect(create) {
@@ -436,7 +436,7 @@ async function connect(create) {
   try{
     config=validatePublicConfig({url:$('url').value,key:$('key').value});localStorage.setItem('era-fc-cloud',JSON.stringify(config));
     $('create').disabled=true;$('join').disabled=true;status('正在连接…');
-    try{const capability=await rpc('fc_protocol_v3',{});if(Number(capability.room_version||0)<9||Number(capability.rating_version||0)<8||Number(capability.chemistry_version||0)<4||Number(capability.catalog_count)<pools.reduce((n,p)=>n+p.players.length,0))throw Error('同队羁绊新规则需要执行一次数据库升级 SQL。');}catch(e){if(e.code==='PGRST202'||e.status===404)throw Error('新联机规则需要执行一次数据库升级 SQL。');throw e;}
+    try{const capability=await rpc('fc_protocol_v3',{});if(Number(capability.room_version||0)<10||Number(capability.rating_version||0)<8||Number(capability.chemistry_version||0)<4||Number(capability.catalog_count)<pools.reduce((n,p)=>n+p.players.length,0))throw Error('新阵型与羁绊规则需要执行一次数据库升级 SQL。');}catch(e){if(e.code==='PGRST202'||e.status===404)throw Error('新联机规则需要执行一次数据库升级 SQL。');throw e;}
     preferredCapacity=Number($('capacity')?.value||preferredCapacity);
     if(create)validateRoomPool(s,preferredCapacity);
     const d=create?await rpc('fc_create_room_v9',{p_mode:s.mode,p_capacity:preferredCapacity}):await rpc('fc_connect_v3',{p_code:code,p_mode:s.mode});
