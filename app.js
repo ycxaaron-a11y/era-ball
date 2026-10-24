@@ -475,9 +475,17 @@ async function poll() {
   finally{polling=false;}
 }
 function showUpgradeHelp(){
-  if(!$('status'))return;
-  const p=document.createElement('p');p.className='hint';p.innerHTML='<a href="supabase/setup-all.sql" target="_blank" rel="noopener">打开完整安装与升级 SQL</a> · <button id="copy-upgrade">复制升级 SQL</button>，粘贴到 Supabase SQL Editor 后运行，再重新连接。';$('status').after(p);
-  $('copy-upgrade').onclick=async()=>{try{const r=await fetch('supabase/setup-all.sql');if(!r.ok)throw Error();await navigator.clipboard.writeText(await r.text());$('copy-upgrade').textContent='已复制';}catch{$('copy-upgrade').textContent='请打开链接复制原文';}};
+  if(!$('status')||$('upgrade-help'))return;
+  const panel=document.createElement('section');panel.id='upgrade-help';panel.className='hint';
+  panel.innerHTML='<p>将完整 SQL 粘贴到原 Supabase 项目的 SQL Editor，运行后重新连接。</p><div class="upgrade-actions"><button id="copy-upgrade" type="button">复制升级 SQL</button><button id="view-upgrade" type="button">在这里查看 SQL</button><a href="https://github.com/ycxaaron-a11y/era-ball/blob/main/supabase/setup-all.sql" target="_blank" rel="noopener">GitHub 备用链接 ↗</a></div><p id="upgrade-feedback" role="status"></p><div id="upgrade-source" hidden><label for="upgrade-text">完整升级 SQL（点击文本框后按 Ctrl+A / Command+A 全选，再复制）</label><textarea id="upgrade-text" readonly spellcheck="false" rows="8"></textarea><button id="select-upgrade" type="button">全选 SQL</button></div>';
+  $('status').after(panel);
+  let sql='';
+  async function loadSQL(){if(!sql){const r=await fetch('supabase/setup-all.sql');if(!r.ok)throw Error('SQL 文件加载失败，请使用 GitHub 备用链接，点击 Raw 后复制。');sql=await r.text();}$('upgrade-text').value=sql;return sql;}
+  function selectSQL(){$('upgrade-source').hidden=false;$('upgrade-text').focus();$('upgrade-text').select();}
+  function failure(e){$('upgrade-feedback').textContent=e.message||'无法加载，请使用 GitHub 备用链接。';}
+  $('select-upgrade').onclick=selectSQL;
+  $('view-upgrade').onclick=async()=>{try{await loadSQL();selectSQL();$('upgrade-feedback').textContent='已显示完整 SQL，可直接全选复制。';}catch(e){failure(e);}};
+  $('copy-upgrade').onclick=async()=>{const button=$('copy-upgrade');button.disabled=true;$('upgrade-feedback').textContent='正在加载 SQL…';try{const text=await loadSQL();try{await navigator.clipboard.writeText(text);button.textContent='已复制';$('upgrade-feedback').textContent='已复制完整 SQL，前往 Supabase SQL Editor 粘贴并运行。';}catch{selectSQL();$('upgrade-feedback').textContent='浏览器未允许自动复制，已为你全选下方 SQL。请按 Ctrl+C / Command+C 复制。';}}catch(e){failure(e);}finally{button.disabled=false;}};
 }
 $('formation').innerHTML = formationChoices.map(f => `<option value="${f}">${formationName(f)}</option>`).join('');
 render();
