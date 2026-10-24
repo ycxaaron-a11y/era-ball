@@ -16,3 +16,6 @@ const root=new URL('../supabase/',import.meta.url);
 writeFileSync(new URL('upgrade-all-v4.sql',root),readFileSync(new URL('upgrade-spin-locks.sql',root),'utf8')+'\n'+readFileSync(new URL('season-v4.sql',root),'utf8'));
 
 writeFileSync(new URL('upgrade-all-v5.sql',root),readFileSync(new URL('upgrade-all-v4.sql',root),'utf8')+'\n'+readFileSync(new URL('final-v5.sql',root),'utf8'));
+
+const combined=readFileSync(new URL('upgrade-all-v5.sql',root),'utf8').replace(/^begin;\s*$/gm,'').replace(/^commit;\s*$/gm,'');
+writeFileSync(new URL('setup-all.sql',root),'-- ERA FC: full installation and all upgrades, safe to rerun.\n-- Keep your existing Supabase project. Enable Anonymous Sign-Ins separately.\nbegin;\n'+original+'\n'+combined+'\ncommit;\n');

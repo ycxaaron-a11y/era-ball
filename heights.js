@@ -11,9 +11,10 @@ export function estimateHeight(identity, primaryPosition) {
 }
 export function buildHeightProfiles(players) {
   const profiles = new Map();
+  const supplied = new Map(players.filter(p=>Number.isInteger(p.heightCm)).map(p=>[p.identity,p.heightCm]));
   for (const player of players) {
     if (profiles.has(player.identity)) continue;
-    const listed = playerHeights[player.identity];
+    const listed = playerHeights[player.identity] ?? supplied.get(player.identity);
     profiles.set(player.identity, Number.isInteger(listed)
       ? { heightCm: listed, heightEstimated: false }
       : { heightCm: estimateHeight(player.identity, player.positions[0]), heightEstimated: true });

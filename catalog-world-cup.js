@@ -53,7 +53,7 @@ Ian Callaghan|RM/RW|77`],
 Félix|GK|83|classic-keeper
 Ado|GK|73|classic-keeper
 Emerson Leão|GK|75|classic-keeper
-Carlos Alberto Torres|RB/CB|93
+Carlos Alberto Torres|RB/CB|95
 Brito|CB|87|classic-stopper
 Wilson Piazza|CB/CDM|87
 Everaldo|LB|83
@@ -63,11 +63,11 @@ Joel Camargo|CB|76|classic-stopper
 Fontana|CB|78|classic-stopper
 Zé Maria|RB|77
 Clodoaldo|CDM/CM|88
-Gérson|CM|93|classic-maker
-Rivelino|LW/CAM|94
+Gérson|CM|95|classic-maker
+Rivelino|LW/CAM|95
 Jairzinho|RW/ST|96
 Pelé|ST/CAM|99
-Tostão|ST/CAM|92
+Tostão|ST/CAM|94
 Paulo Cézar Caju|LW/CAM|84
 Edu|LW|79
 Roberto Miranda|ST|75
@@ -326,8 +326,8 @@ Petar Krpan|ST|74`],
 Marcos|GK|91
 Dida|GK|83
 Rogério Ceni|GK|80
-Cafu|RB|93
-Roberto Carlos|LB|94
+Cafu|RB|96
+Roberto Carlos|LB|96
 Lúcio|CB|90
 Roque Júnior|CB|83
 Edmílson|CB/CDM|86
@@ -340,8 +340,8 @@ Juninho Paulista|CAM/CM|84
 Vampeta|CDM/CM|77
 Kaká|CAM|79
 Ronaldo Nazário|ST|99
-Rivaldo|CAM/LW/ST|94
-Ronaldinho|CAM/LW|93
+Rivaldo|CAM/LW/ST|97
+Ronaldinho|CAM/LW|96
 Denílson|LW|81
 Luizão|ST|77
 Edílson|ST/RW|79`],
@@ -413,23 +413,23 @@ Razak Pimpong|ST/RW|76
 Matthew Amoah|ST|82
 Asamoah Gyan|ST|86`],
   ['wc-spain-2010','西班牙',2010,'🇪🇸',`
-Iker Casillas|GK|95
+Iker Casillas|GK|96
 Pepe Reina|GK|82
 Víctor Valdés|GK|83
 Sergio Ramos|RB/CB|92
 Gerard Piqué|CB|91
-Carles Puyol|CB|94
+Carles Puyol|CB|95
 Joan Capdevila|LB|86
 Raúl Albiol|CB|79
 Álvaro Arbeloa|RB/LB|81
 Carlos Marchena|CB/CDM|82
 Xavi|CM|97
-Andrés Iniesta|CM/CAM/LW|93
+Andrés Iniesta|CM/CAM/LW|97
 Sergio Busquets|CDM|91
 Xabi Alonso|CM/CDM|92
 Cesc Fàbregas|CM/CAM|88
 Javi Martínez|CM/CDM|78
-David Villa|ST/LW|93
+David Villa|ST/LW|95
 Fernando Torres|ST|85
 Pedro|RW/LW|84
 Jesús Navas|RW/RM|85
@@ -441,7 +441,7 @@ Manuel Neuer|GK|97
 Roman Weidenfeller|GK|79
 Ron-Robert Zieler|GK|74
 Philipp Lahm|RB/LB/CDM|95
-Mats Hummels|CB|93
+Mats Hummels|CB|94
 Jérôme Boateng|CB/RB|92
 Benedikt Höwedes|LB/CB|86
 Per Mertesacker|CB|85
@@ -449,8 +449,8 @@ Shkodran Mustafi|CB/RB|78
 Erik Durm|LB|74
 Matthias Ginter|CB|75
 Kevin Großkreutz|RB/RM|76
-Toni Kroos|CM/CAM|94
-Bastian Schweinsteiger|CM/CDM|93
+Toni Kroos|CM/CAM|95
+Bastian Schweinsteiger|CM/CDM|95
 Sami Khedira|CM/CDM|89
 Christoph Kramer|CDM/CM|80
 Mesut Özil|CAM/LW|91

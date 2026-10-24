@@ -15,6 +15,7 @@ try{
  async function write(r,i,next,id=randomUUID()){
   const result=await rpc([a,b][i],'fc_submit_v3',[r.code,networkState(next),r.revisions[i],id]);r.revisions[i]=result.revision;r.states[i]=next;return result;
  }
+ const expanded=await room('ucl'),expandedPool=pools.find(p=>p.id==='ucl-real-madrid-2024'),vini=expandedPool.players.find(p=>p.identity==='vinicius-junior');assert.equal((await rpc(a,'fc_protocol_v3',[])).catalog_count,1550);await write(expanded,0,pickPlayer({...expanded.states[0],pool:expandedPool.id,drawPhase:'ready'},vini.id,7));const newStored=(await rpc(a,'fc_read_v3',[expanded.code])).members.find(m=>m.is_self).state;assert.equal(newStored.picks[7].baseRating,99);assert.equal(newStored.picks[7].rating,87);assert.match(newStored.picks[7].name,/维尼修斯/);console.log('PASS SQL: full fresh setup loads 1550 versions; new Vinicius claim recomputed from 99 to 87 at CB');
  const r=await room(),pool=pools.find(p=>p.id==='wc-brazil-1970'),pele=pool.players.find(p=>p.identity==='pele');
  const proposals=r.states.map(s=>pickPlayer({...s,pool:pool.id,drawPhase:'ready'},pele.id,0));
  const requestId=randomUUID();

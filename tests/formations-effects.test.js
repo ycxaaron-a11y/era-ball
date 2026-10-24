@@ -1,3 +1,4 @@
+import {expansionSquads} from '../catalog-expansion.js';
 import { startSpunDraft } from './helpers.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -32,13 +33,13 @@ test('new formations submit through the existing RPC whitelist without losing th
   }
 });
 test('every identity has a stable height across its era versions and known values are not overwritten', () => {
-  const seen=new Map();
+  const seen=new Map(), supplied=new Map(expansionSquads.flatMap(s=>s.players).filter(p=>Number.isInteger(p.heightCm)).map(p=>[p.identity,p.heightCm]));
   for (const p of pools.flatMap(s=>s.players)) {
     assert.ok(Number.isInteger(p.heightCm)&&p.heightCm>=150&&p.heightCm<=210);
     if(seen.has(p.identity))assert.equal(p.heightCm,seen.get(p.identity));
     seen.set(p.identity,p.heightCm);
     if(playerHeights[p.identity]) {assert.equal(p.heightCm,playerHeights[p.identity]);assert.equal(p.heightEstimated,false)}
-    else assert.equal(p.heightEstimated,true);
+    else if(supplied.has(p.identity)){assert.equal(p.heightCm,supplied.get(p.identity));assert.equal(p.heightEstimated,false);}else assert.equal(p.heightEstimated,true);
   }
   assert.equal(estimateHeight('unknown-keeper','GK'),estimateHeight('unknown-keeper','GK'));
   assert.ok(estimateHeight('unknown-keeper','GK')>estimateHeight('unknown-winger','RW'));

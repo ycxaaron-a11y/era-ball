@@ -70,7 +70,7 @@ try{
  await p.goto('http://127.0.0.1:3000/');await p.click('#ucl');for(const box of await p.locator('input[name=excluded]').all())if(await box.inputValue()!=='2010s-b')await box.check();await p.click('#start-draft');
  async function choose(id,slot){await p.click('#spin');await p.waitForSelector('[data-player]');await p.locator(`[data-player="${id}"]`).click();await p.click(`[data-slot="${slot}"]`);await p.click(`[data-slot="${slot}"]`)}
  await choose('ucl-real-madrid-2017:gareth-bale',2);assert.equal(await p.locator('.placement-impact').count(),0);await choose('ucl-liverpool-2019:virgil-van-dijk',7);await choose('ucl-real-madrid-2017:cristiano-ronaldo',0);
- assert.match(await p.locator('[data-slot="2"]').getAttribute('class'),/tier-a\b/);assert.match(await p.locator('#chemistry-panel').textContent(),/贝尔/);assert.match(await p.locator('[data-slot="2"]').textContent(),/↑\+2/);
+ assert.match(await p.locator('[data-slot="2"]').getAttribute('class'),/tier-s\b/);assert.match(await p.locator('#chemistry-panel').textContent(),/贝尔/);assert.match(await p.locator('[data-slot="2"] .was-tier').textContent(),/was A/);
  await choose('ucl-liverpool-2019:mohamed-salah',1);await choose('ucl-real-madrid-2017:karim-benzema',11);assert.match(await p.locator('[data-slot="11"]').getAttribute('class'),/tier-s\b/);await p.screenshot({path:'/tmp/era-v3-chemistry.png',fullPage:true});assert.deepEqual(errors,[]);
  console.log('PASS local browser: confirmed real partners activate panel, boost both and promote Benzema A→S with border change');
 

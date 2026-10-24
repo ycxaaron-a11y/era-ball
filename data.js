@@ -1,3 +1,4 @@
+import {expansionSquads} from './catalog-expansion.js';
 import { chemistryBonus } from './chemistry.js';
 import { chineseNames } from './player-names-zh.js';
 import { buildHeightProfiles } from './heights.js';
@@ -16,12 +17,12 @@ export const eraById = id => eras.find(e => e.id === id);
 export const eraForYear = year => eras.find(e => year >= e.from && year <= e.to);
 export const tier = r => r >= 99 ? 'S+' : r >= 94 ? 'S' : r >= 88 ? 'A' : r >= 82 ? 'B' : r >= 75 ? 'C' : 'D';
 export const tierClass = t => `tier-${t === 'S+' ? 'sp' : t.toLowerCase()}`;
-const allSquads = [...worldCupSquads, ...uclSquads];
+const allSquads = [...worldCupSquads, ...uclSquads, ...expansionSquads];
 const heightProfiles = buildHeightProfiles(allSquads.flatMap(squad => squad.players));
 export const pools = allSquads.map(squad => ({
   ...squad, era: String(squad.year), eraId: eraForYear(squad.year).id,
   players: squad.players.map(p => ({
-    ...p, originalName: p.name, name: chineseNames[p.identity] || '球员', ...heightProfiles.get(p.identity), id: `${squad.id}:${p.identity}`, pos: p.positions[0], tier: tier(p.rating),
+    ...p, originalName: p.name, name: p.displayName || chineseNames[p.identity] || '球员', ...heightProfiles.get(p.identity), id: `${squad.id}:${p.identity}`, pos: p.positions[0], tier: tier(p.rating),
     profile: p.profile || 'universal', year: squad.year, era: String(squad.year),
     team: squad.team, flag: squad.flag
   }))

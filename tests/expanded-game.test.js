@@ -15,15 +15,15 @@ test('both modes cover all 12 eras with multiple teams and a broad player catalo
   }
   assert.ok(pools.reduce((sum, p) => sum + p.players.length, 0) >= 800);
 });
-test('squads have a maximum of three S/S+ players and unique stable identities', () => {
+test('squads retain unique identities with era-specific elite ratings and no three-player cap', () => {
   assert.equal(new Set(pools.map(p => p.id)).size, pools.length);
   const allTiers = new Set();
   for (const p of pools) {
-    assert.ok(p.players.filter(x => x.rating >= 94).length <= 3, p.id);
+
     assert.equal(new Set(p.players.map(x => x.identity)).size, p.players.length, p.id);
     for (const x of p.players) {
       allTiers.add(x.tier);
-      assert.ok(x.positions.length && x.positions.every(pos => ['GK', 'LB', 'CB', 'RB', 'CDM', 'CM', 'CAM', 'LW', 'RW', 'LM', 'RM', 'ST'].includes(pos)), x.id);
+      assert.ok(x.positions.length && x.positions.every(pos => ['GK', 'LB', 'CB', 'RB', 'CDM', 'CM', 'CAM', 'LW', 'RW', 'LM', 'RM', 'ST', 'LWB', 'RWB', 'SS'].includes(pos)), x.id);
     }
   }
   assert.deepEqual([...allTiers].sort(), ['A', 'B', 'C', 'D', 'S', 'S+'].sort());

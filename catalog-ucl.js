@@ -1,5 +1,5 @@
 // Curated season squads, not exhaustive UEFA registration lists. Year is the season's final year.
-// Editorial era-specific ratings; at most three S/S+ players in any squad.
+// Editorial era-specific ratings. Strong historic squads may have multiple elite players.
 // Historical European Cup is included in the modern "ucl" game mode.
 const rows = [
 ['real-madrid', '皇家马德里', 1960, '⚪', `
@@ -180,9 +180,9 @@ Juary|ST|80
 ['milan', 'AC 米兰', 1989, '🔴', `
 Marco van Basten|ST|99|marco-van-basten|universal
 Ruud Gullit|CAM/ST/CM|97|ruud-gullit|universal
-Franco Baresi|CB|96|franco-baresi|universal
+Franco Baresi|CB|97|franco-baresi|universal
 Frank Rijkaard|CDM/CB|93|frank-rijkaard|universal
-Paolo Maldini|LB/CB|91|paolo-maldini|universal
+Paolo Maldini|LB/CB|95|paolo-maldini|universal
 Alessandro Costacurta|CB|87
 Mauro Tassotti|RB|87
 Carlo Ancelotti|CM/CDM|88
@@ -345,14 +345,14 @@ Giuseppe Favalli|LB/CB|78
 `],
 ['barcelona', '巴塞罗那', 2009, '🔵', `
 Lionel Messi|RW/ST/CAM|99|lionel-messi|universal
-Xavi|CM|96|xavi
-Andrés Iniesta|CM/CAM/LW|94|andres-iniesta|universal
-Samuel Eto'o|ST|93|samuel-etoo
-Thierry Henry|LW/ST|92|thierry-henry|universal
+Xavi|CM|97|xavi
+Andrés Iniesta|CM/CAM/LW|96|andres-iniesta|universal
+Samuel Eto'o|ST|95|samuel-etoo
+Thierry Henry|LW/ST|94|thierry-henry|universal
 Sergio Busquets|CDM|86|sergio-busquets
 Yaya Touré|CDM/CM/CB|89|yaya-toure
 Seydou Keita|CM|83
-Carles Puyol|CB/RB|92|carles-puyol|universal
+Carles Puyol|CB/RB|94|carles-puyol|universal
 Gerard Piqué|CB|87|gerard-pique
 Dani Alves|RB/RM|92|dani-alves|modern-wingback
 Éric Abidal|LB/CB|87|eric-abidal
@@ -412,13 +412,13 @@ Paulo Ferreira|RB/LB|74
 `],
 ['real-madrid', '皇家马德里', 2017, '⚪', `
 Cristiano Ronaldo|LW/ST|99|cristiano-ronaldo|universal
-Luka Modrić|CM/CAM|95|luka-modric|universal
-Sergio Ramos|CB|94|sergio-ramos|universal
-Toni Kroos|CM/CDM|93|toni-kroos
-Marcelo|LB/LM|92|marcelo|modern-wingback
-Casemiro|CDM|92|casemiro
-Karim Benzema|ST|91|karim-benzema
-Gareth Bale|RW/LW|90|gareth-bale
+Luka Modrić|CM/CAM|97|luka-modric|universal
+Sergio Ramos|CB|96|sergio-ramos|universal
+Toni Kroos|CM/CDM|95|toni-kroos
+Marcelo|LB/LM|95|marcelo|modern-wingback
+Casemiro|CDM|94|casemiro
+Karim Benzema|ST|93|karim-benzema
+Gareth Bale|RW/LW|92|gareth-bale
 Isco|CAM/CM|91|isco
 Dani Carvajal|RB|91|dani-carvajal
 Raphaël Varane|CB|89|raphael-varane
