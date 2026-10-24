@@ -1,5 +1,7 @@
 import {pools,positions,playerAbility,positionPenalty} from './data.js';
-export function seeded(seed){let a=Number(seed)>>>0;return()=>{a+=0x6D2B79F5;let t=Math.imul(a^a>>>15,1|a);t^=t+Math.imul(t^t>>>7,61|t);return((t^t>>>14)>>>0)/4294967296;};}
+import {seeded} from './random.js';
+import {prepareFinal} from './final-match.js';
+export {seeded} from './random.js';
 export function draftTeam(state,id,name,canonical=false){return{id,name,human:true,players:state.picks.slice(0,11).map((p,i)=>({id:`${id}:${i}`,name:p.name,pos:positions(state.lineupFormation||state.formation)[i],rating:canonical?p.rating:playerAbility(state,p,positions(state.formation)[i])}))};}
 const power=t=>t.players.reduce((a,p)=>a+p.rating,0)/t.players.length;
 function weighted(players,rng,assist=false){const weights=players.map(p=>(p.pos==='GK'?.015:['ST','LW','RW'].includes(p.pos)?assist?3:6:['CAM','CM','LM','RM'].includes(p.pos)?assist?5:3:1)*p.rating);let roll=rng()*weights.reduce((a,b)=>a+b,0);return players.find((_,i)=>(roll-=weights[i])<=0)||players.at(-1);}
@@ -26,6 +28,6 @@ export function createTournament({mode='ucl',seed,humans}){
  const rows=groups.map(g=>standings(g.teams,phases.flatMap(p=>p.matches).filter(m=>m.group===g.name))),find=id=>teams.find(t=>t.id===id);
  let entrants=[rows[0][0].id,rows[1][1].id,rows[1][0].id,rows[0][1].id,rows[2][0].id,rows[3][1].id,rows[3][0].id,rows[2][1].id];
  for(const title of ['四分之一决赛','半决赛','决赛']){const matches=[];for(let i=0;i<entrants.length;i+=2)matches.push(match(find(entrants[i]),find(entrants[i+1]),true,rng,`k${phases.length}-${i}`));phases.push({title,matches});entrants=matches.map(m=>m.winner);}
- return{version:4,seed,mode,groups,teams,phases,champion:entrants[0]};
+ return prepareFinal({version:5,seed,mode,groups,teams,phases,champion:entrants[0]});
 }
 export function statistics(tournament,cursor){const matches=tournament.phases.slice(0,cursor).flatMap(p=>p.matches);return tournament.teams.flatMap(t=>t.players.map(p=>{const played=matches.filter(m=>m.home===t.id||m.away===t.id),goals=played.reduce((n,m)=>n+m.events.filter(e=>e.scorer===p.id).length,0),assists=played.reduce((n,m)=>n+m.events.filter(e=>e.assist===p.id).length,0),mvps=played.filter(m=>m.mvp.player.id===p.id).length,total=played.reduce((n,m)=>n+(m.performances.find(x=>x.player.id===p.id)?.score||0),0);return{...p,team:t.name,goals,assists,mvps,played:played.length,average:played.length?total/played.length:0,award:goals*3+assists*2+mvps*2+total/10};})).filter(p=>p.played);}

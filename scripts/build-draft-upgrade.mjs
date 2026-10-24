@@ -14,3 +14,5 @@ console.log(`Built protocol 3 migration: ${players.length} player versions, ${ch
 
 const root=new URL('../supabase/',import.meta.url);
 writeFileSync(new URL('upgrade-all-v4.sql',root),readFileSync(new URL('upgrade-spin-locks.sql',root),'utf8')+'\n'+readFileSync(new URL('season-v4.sql',root),'utf8'));
+
+writeFileSync(new URL('upgrade-all-v5.sql',root),readFileSync(new URL('upgrade-all-v4.sql',root),'utf8')+'\n'+readFileSync(new URL('final-v5.sql',root),'utf8'));

@@ -1,3 +1,5 @@
+import {prepareFinal,finalFrame} from './final-match.js';
+import {updateFinalLive} from './final-view.js';
 import {createTournament,draftTeam} from './tournament.js';
 import {renderSeason,closeSeason,seasonVisible} from './season-view.js';
 import { activeChemistry, chemistryBonus, chemistryPairs } from './chemistry.js';
@@ -185,6 +187,8 @@ $('rules').onclick = () => modal(`<h2>更多年代，更多选择</h2><p>收录 
   <p>赛前确定征战年代及排除年代，开局后锁定。赛季采用自定义 16 队杯赛：四组各四队，小组赛三轮后前二晋级，随后四分之一决赛、半决赛、决赛，均单场决胜。替补暂不自动换人。联机双方分别位于 A、C 组不同半区，只有都晋级才能在决赛会师；共同保存赛季种子与轮次。</p>
   <p>角色适配参考公开历史比赛位置资料；跨年代结果无法客观测量。<a href="docs/era-research.md" target="_blank" rel="noopener">研究来源与建模说明 ↗</a></p>`);
 let tournament=null, seasonCursor=0, seasonBusy=false, seasonRoom=null, seasonPage=null, seasonReveal=null, autoRunning=false, autoToken=0, seasonFailure='';
+let finalSession=null,finalTimer=null,finalBusy=false,finalFinishing=false,finalFinishTimer=null;
+const currentFinalFrame=()=>finalSession&&!finalSession.completed&&seasonCursor<6?finalFrame(tournament.phases[5].matches[0],finalSession):null;
 const defaultSeasonPage=()=>seasonCursor===5?5:Math.max(0,seasonCursor-1);
 function stopAuto(){autoRunning=false;autoToken++;seasonReveal=null;if(seasonVisible())paintSeason();}
 const localSeasonKey='era-fc-season-v4';
@@ -193,29 +197,32 @@ function paintSeason(error=seasonFailure){
  seasonFailure=error;
  if(!tournament)return;
  if($('modal').open)$('modal').close();
- renderSeason(tournament,seasonCursor,{online:Boolean(seasonRoom),pending:seasonBusy,autoRunning,phaseIndex:seasonPage??defaultSeasonPage(),reveal:seasonReveal,error,onNext:()=>advanceSeason(),onAuto:runAuto,onStop:stopAuto,onSkip:skipSeason,onPage:index=>{seasonPage=index;paintSeason();window.scrollTo(0,0);},onExit:stopAuto});
+ renderSeason(tournament,seasonCursor,{online:Boolean(seasonRoom),pending:seasonBusy||finalBusy,live:currentFinalFrame(),onKick:kickFinal,autoRunning,phaseIndex:seasonPage??defaultSeasonPage(),reveal:seasonReveal,error,onNext:()=>advanceSeason(),onAuto:runAuto,onStop:stopAuto,onSkip:skipSeason,onPage:index=>{seasonPage=index;paintSeason();window.scrollTo(0,0);},onExit:stopAuto});
 }
 function openLocalSeason(){
  const fingerprint=draftFingerprint(),stored=read(localSeasonKey,null);
- if(stored?.fingerprint===fingerprint&&stored?.version===4){tournament=stored.tournament;seasonCursor=Math.max(0,Math.min(6,stored.cursor));}
- else{tournament=createTournament({mode:s.mode,seed:crypto.getRandomValues(new Uint32Array(1))[0],humans:[draftTeam(s,'host','我的梦之队')]});seasonCursor=0;}
- seasonRoom=null;seasonPage=defaultSeasonPage();persistSeason();paintSeason();
+ if(stored?.fingerprint===fingerprint&&stored?.version===4){tournament=stored.cursor===6?stored.tournament:prepareFinal(stored.tournament);finalSession=stored.finalSession||null;seasonCursor=Math.max(0,Math.min(6,stored.cursor));}
+ else{finalSession=null;tournament=createTournament({mode:s.mode,seed:crypto.getRandomValues(new Uint32Array(1))[0],humans:[draftTeam(s,'host','我的梦之队')]});seasonCursor=0;}
+ seasonRoom=null;seasonPage=defaultSeasonPage();persistSeason();paintSeason();if(currentFinalFrame())ensureFinalTimer();
 }
-function persistSeason(){if(!seasonRoom)localStorage.setItem(localSeasonKey,JSON.stringify({version:4,fingerprint:draftFingerprint(),tournament,cursor:seasonCursor}));}
+function persistSeason(){if(!seasonRoom)localStorage.setItem(localSeasonKey,JSON.stringify({version:4,fingerprint:draftFingerprint(),tournament,cursor:seasonCursor,finalSession}));}
 async function syncOnlineSeason(open=false){
  const code=room;if(!code)return;
  const state=await rpc('fc_season_v4',{p_code:code,p_expected:null});if(room!==code)return;
  if(seasonRoom!==code||tournament?.seed!==state.seed){
+  finalSession=null;clearInterval(finalTimer);finalTimer=null;
   const members=remote.members.filter(m=>m.state).sort((a,b)=>Number(b.host)-Number(a.host));
   if(members.length!==2)return;
   tournament=createTournament({mode:s.mode,seed:state.seed,humans:members.map(m=>draftTeam(m.state,m.host?'host':'guest',m.host?'房主梦之队':'客队梦之队',true))});seasonCursor=0;seasonRoom=code;sessionStorage.setItem('era-fc-season-room-v4',code);
  }
  const changed=seasonCursor!==state.cursor;seasonCursor=Math.max(seasonCursor,state.cursor);
+ if(state.cursor===5){try{const data=await rpc('fc_final_v5',{p_code:code,p_action:'read',p_expected:null});if(data.live)applyFinalData(data);}catch{/* Old projects can upgrade when starting the final. */}}
+ if(state.cursor===6&&finalSession){finalSession.completed=true;clearInterval(finalTimer);finalTimer=null;}
  if(changed&&!autoRunning)seasonPage=defaultSeasonPage();
  if(open||(changed&&seasonVisible()))paintSeason();
 }
 async function advanceSeason(animate=false,token=autoToken){
- if(seasonBusy||seasonCursor>=6)return false;seasonBusy=true;let failure='';seasonFailure='';paintSeason();
+ if(seasonBusy||seasonCursor>=6)return false;if(seasonCursor===5&&!animate)return startFinal();seasonBusy=true;let failure='';seasonFailure='';paintSeason();
  try{
   if(seasonRoom){const code=seasonRoom,data=await rpc('fc_season_v4',{p_code:code,p_expected:seasonCursor});if(room!==code)return false;seasonCursor=Math.max(seasonCursor,data.cursor);}
   else{seasonCursor++;persistSeason();}
@@ -240,8 +247,49 @@ async function runAuto(){
  finally{if(token===autoToken){autoRunning=false;if(seasonCursor===5)seasonPage=5;if(seasonVisible())paintSeason();}}
 }
 function skipSeason(){
- if(seasonRoom||seasonBusy||autoRunning)return;
+ if(seasonRoom||seasonBusy||autoRunning||currentFinalFrame())return;
  seasonCursor=6;seasonPage=5;persistSeason();paintSeason();window.scrollTo(0,0);
+}
+function applyFinalData(data){
+ if(!data.live)return;
+ const before=Boolean(currentFinalFrame());
+ const same=finalSession?.serverStartedAt===Number(data.live.started_at);
+ finalSession={serverStartedAt:Number(data.live.started_at),startedAt:same?finalSession.startedAt:Number(data.live.started_at)+Date.now()-Number(data.server_now),kicks:same?Math.max(finalSession.kicks,Number(data.live.kicks)):Number(data.live.kicks),completed:Boolean(data.live.completed)||(same&&finalSession.completed)};
+ if(finalSession.completed){seasonCursor=6;seasonPage=5;clearInterval(finalTimer);finalTimer=null;}
+ if(!finalSession.completed){seasonPage=5;ensureFinalTimer();if(!before&&seasonVisible()){paintSeason();document.querySelector('.final-live')?.scrollIntoView({block:'start'});}}
+}
+function ensureFinalTimer(){if(!finalTimer)finalTimer=setInterval(tickFinal,80);}
+function tickFinal(){
+ const frame=currentFinalFrame();if(!frame){clearInterval(finalTimer);finalTimer=null;return;}
+ if(seasonVisible())updateFinalLive(tournament,frame,kickFinal,finalBusy);
+ if(frame.complete&&!finalFinishing&&!finalFinishTimer)finalFinishTimer=setTimeout(()=>{finalFinishTimer=null;finishFinal();},700);
+}
+async function startFinal(){
+ if(seasonBusy||currentFinalFrame())return;
+ seasonBusy=true;seasonFailure='';let upgrade=false;paintSeason();
+ try{
+  if(seasonRoom)applyFinalData(await rpc('fc_final_v5',{p_code:seasonRoom,p_action:'start',p_expected:null}));
+  else{finalSession={startedAt:Date.now(),kicks:0,completed:false};persistSeason();}
+  seasonPage=5;ensureFinalTimer();
+ }catch(e){seasonFailure=readableError(e);if(e.code==='PGRST202'||e.status===404){upgrade=true;onlineUI();status('决赛直播需要运行一次最新合并升级 SQL（含之前所有升级）。');showUpgradeHelp();}}
+ finally{seasonBusy=false;if(!upgrade){paintSeason();if(currentFinalFrame())document.querySelector('.final-live')?.scrollIntoView({block:'start'});}}
+}
+async function kickFinal(){
+ const frame=currentFinalFrame();if(finalBusy||!frame?.penalty||frame.complete)return;
+ finalBusy=true;updateFinalLive(tournament,frame,kickFinal,true);
+ try{
+  if(seasonRoom)applyFinalData(await rpc('fc_final_v5',{p_code:seasonRoom,p_action:'kick',p_expected:frame.kicks}));
+  else{finalSession.kicks++;persistSeason();}
+ }catch(e){seasonFailure=readableError(e);paintSeason();}
+ finally{finalBusy=false;tickFinal();}
+}
+async function finishFinal(){
+ if(finalFinishing||!currentFinalFrame()?.complete)return;finalFinishing=true;
+ try{
+  if(seasonRoom)await rpc('fc_final_v5',{p_code:seasonRoom,p_action:'finish',p_expected:null});
+  finalSession.completed=true;seasonCursor=6;seasonPage=5;persistSeason();clearInterval(finalTimer);finalTimer=null;if(seasonVisible())paintSeason();
+ }catch(e){seasonFailure=readableError(e);if(seasonVisible())paintSeason();}
+ finally{finalFinishing=false;}
 }
 $('simulate').onclick=async()=>{
  if(s.picks.some(p=>!p))return;
@@ -368,8 +416,8 @@ async function poll() {
 }
 function showUpgradeHelp(){
   if(!$('status'))return;
-  const p=document.createElement('p');p.className='hint';p.innerHTML='<a href="supabase/upgrade-all-v4.sql" target="_blank" rel="noopener">打开合并升级 SQL（含上次更新）</a> · <button id="copy-upgrade">复制升级 SQL</button>，粘贴到 Supabase SQL Editor 后运行，再重新连接。';$('status').after(p);
-  $('copy-upgrade').onclick=async()=>{try{const r=await fetch('supabase/upgrade-all-v4.sql');if(!r.ok)throw Error();await navigator.clipboard.writeText(await r.text());$('copy-upgrade').textContent='已复制';}catch{$('copy-upgrade').textContent='请打开链接复制原文';}};
+  const p=document.createElement('p');p.className='hint';p.innerHTML='<a href="supabase/upgrade-all-v5.sql" target="_blank" rel="noopener">打开合并升级 SQL（含全部历史升级）</a> · <button id="copy-upgrade">复制升级 SQL</button>，粘贴到 Supabase SQL Editor 后运行，再重新连接。';$('status').after(p);
+  $('copy-upgrade').onclick=async()=>{try{const r=await fetch('supabase/upgrade-all-v5.sql');if(!r.ok)throw Error();await navigator.clipboard.writeText(await r.text());$('copy-upgrade').textContent='已复制';}catch{$('copy-upgrade').textContent='请打开链接复制原文';}};
 }
 $('formation').innerHTML = Object.keys(formations).map(f => `<option value="${f}">${f}</option>`).join('');
 render();
