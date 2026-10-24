@@ -53,6 +53,13 @@ try{
  }
  const stored=(await rpc(a,'fc_read_v3',[chem.code])).members.find(m=>m.is_self).state;
  for(let i=0;i<11;i++)if(chem.states[0].picks[i])assert.equal(stored.picks[i].rating,playerAbility(chem.states[0],chem.states[0].picks[i],positions(chem.states[0].formation)[i]));
+ assert.equal(stored.picks[2].rating,97);assert.equal((await rpc(a,'fc_protocol_v3',[])).chemistry_version,2);
+ const benched={...chem.states[0],picks:[...chem.states[0].picks]};benched.picks[11]=benched.picks[1];benched.picks[1]=null;await write(chem,0,benched);const withoutTrio=(await rpc(a,'fc_read_v3',[chem.code])).members.find(m=>m.is_self).state;assert.equal(withoutTrio.picks[2].rating,95);
+ for(const [poolId,combination] of [['ucl-barcelona-2015',[[2,'lionel-messi'],[0,'neymar'],[1,'luis-suarez']]],['ucl-milan-1989',[[3,'ruud-gullit'],[1,'marco-van-basten'],[4,'frank-rijkaard']]]]){
+  const r=await room('ucl'),source=pools.find(p=>p.id===poolId);for(const [slot,id] of combination){const person=source.players.find(p=>p.identity===id);await write(r,0,pickPlayer({...r.states[0],pool:source.id,drawPhase:'ready'},person.id,slot));}
+  const canonical=(await rpc(a,'fc_read_v3',[r.code])).members.find(m=>m.is_self).state;for(const [slot] of combination)assert.equal(canonical.picks[slot].rating,playerAbility(r.states[0],r.states[0].picks[slot],positions(r.states[0].formation)[slot]));if(poolId==='ucl-barcelona-2015')for(const [slot] of combination)assert.equal(canonical.picks[slot].rating,100);
+ }
+ const defense=await room('ucl'),liverpool=pools.find(p=>p.id==='ucl-liverpool-2019'),vvd=liverpool.players.find(p=>p.identity==='virgil-van-dijk');await write(defense,0,pickPlayer({...defense.states[0],pool:liverpool.id,drawPhase:'ready'},vvd.id,7));assert.equal((await rpc(a,'fc_read_v3',[defense.code])).members.find(m=>m.is_self).state.picks[7].rating,99);console.log('PASS SQL: defensive 99 ratings, BBC/MSN +5, Dutch +5%, max-with-pairs and bench deactivation match client');
  console.log('PASS SQL: server recomputes chemistry, cap, positions and ratings; ignores tampered client scores');
  const final=await room('ucl');final.states[0].formation='4-2-3-1';final.states[1].formation='4-3-3-attacking';
  for(let slot=0;slot<16;slot++)for(let i=0;i<2;i++){

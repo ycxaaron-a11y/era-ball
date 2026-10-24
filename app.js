@@ -2,7 +2,7 @@ import {prepareFinal,finalFrame} from './final-match.js';
 import {updateFinalLive} from './final-view.js';
 import {createTournament,draftTeam} from './tournament.js';
 import {renderSeason,closeSeason,seasonVisible} from './season-view.js';
-import { activeChemistry, chemistryBonus, chemistryPairs } from './chemistry.js';
+import { activeChemistry, activeTrios, chemistryBonus, chemistryPairs, chemistryTrios } from './chemistry.js';
 import { playerSilhouette, splusLightning, placementImpact } from './effects.js';
 import { positionName, positionList, heightLabel } from './display.js';
 import { candidateFor, selectCandidate, placeCandidate } from './placement.js';
@@ -136,10 +136,13 @@ async function beginSpin(paid){
 }
 const playerNames=new Map(pools.flatMap(p=>p.players).map(p=>[p.identity,p.name]));
 function renderChemistry(){
-  const pairs=activeChemistry(s.picks);
-  $('chemistry-panel').innerHTML=`<div class="chemistry-heading"><b>🔗 阵容羁绊 <span>${pairs.length} 组</span></b><button id="chemistry-help">查看搭档</button></div>${pairs.length?pairs.map(p=>`<div class="chemistry-link"><span>${p.players.map(id=>esc(playerNames.get(id))).join(' × ')}</span><small>双方 +${p.bonus}</small></div>`).join(''):'<p class="hint">选中真实历史搭档，双方获得能力加成；每人最多 +3。</p>'}`;
-  $('chemistry-help').onclick=()=>modal(`<h2>历史搭档 · 阵容羁绊</h2><p>首发或替补同时入队即可激活，双方各 +2；多组叠加时每人最多 +3，能力上限 100。达到门槛会升级评级与边框。不同球队／年代版本也可搭配，依据的是双方真实同队经历，不代表私人关系测量。</p>${chemistryPairs.map(p=>`<div class="chemistry-link"><span>${p.players.map(id=>esc(playerNames.get(id))).join(' × ')}</span><small>${p.name} · +${p.bonus}</small></div>`).join('')}<p><a href="docs/chemistry-research.md" target="_blank" rel="noopener">历史比赛依据与规则说明 ↗</a></p>`);
+  const trios=activeTrios(s.picks),pairs=activeChemistry(s.picks).filter(pair=>!trios.some(t=>pair.players.every(id=>t.players.includes(id))));
+  const label=t=>t.mode==='percent'?`三人各 +${t.bonus}%`:`三人各 +${t.bonus}`;
+  const names=t=>t.players.map(id=>esc(playerNames.get(id))).join(' × ');
+  $('chemistry-panel').innerHTML=`<div class="chemistry-heading"><b>🔗 阵容羁绊 <span>${pairs.length+trios.length} 组</span></b><button id="chemistry-help">查看搭档</button></div>${trios.map(t=>`<div class="chemistry-trio"><b>${t.name} · ${label(t)}</b><span>${names(t)}</span><small>三人同时首发 · 与双人加成取较高值</small></div>`).join('')}${pairs.map(p=>`<div class="chemistry-link"><span>${names(p)}</span><small>双方 +${p.bonus}</small></div>`).join('')}${pairs.length+trios.length?'':'<p class="hint">双人搭档各 +2；BBC / MSN 三人同时首发各 +5，荷兰三剑客各 +5%。</p>'}`;
+  $('chemistry-help').onclick=()=>modal(`<h2>历史搭档 · 阵容羁绊</h2><p>双人搭档首发或替补均可激活，双方各 +2，双人加成每人最多 +3。BBC、MSN、荷兰三剑客须三人同时在首发 11 人内：BBC / MSN 各加 5 分；荷兰三剑客按每人初始能力加 5%，四舍五入为整数。三人加成与双人加成取较高值，不重复叠加；随后结算位置与年代扣分，最终能力上限 100。</p>${chemistryTrios.map(t=>`<div class="chemistry-trio"><b>${t.name} · ${label(t)}</b><span>${names(t)}</span><small>三人同时首发</small></div>`).join('')}${chemistryPairs.map(p=>`<div class="chemistry-link"><span>${names(p)}</span><small>${p.name} · +${p.bonus}</small></div>`).join('')}<p>不同球队／年代版本也可搭配。依据真实同队经历，数值属于游戏设定。<a href="docs/chemistry-research.md" target="_blank" rel="noopener">历史比赛依据与规则说明 ↗</a></p>`);
 }
+
 function setupUI() {
   if(uiBusy())return;
   const locked = s.started;
@@ -381,7 +384,7 @@ async function connect(create) {
   try{
     config=validatePublicConfig({url:$('url').value,key:$('key').value});localStorage.setItem('era-fc-cloud',JSON.stringify(config));
     $('create').disabled=true;$('join').disabled=true;status('正在连接…');
-    try{const capability=await rpc('fc_protocol_v3',{});if(Number(capability.catalog_count)<pools.reduce((n,p)=>n+p.players.length,0))throw Error('新球员目录需要执行一次数据库升级 SQL。');}catch(e){if(e.code==='PGRST202'||e.status===404)throw Error('新联机规则需要执行一次数据库升级 SQL。');throw e;}
+    try{const capability=await rpc('fc_protocol_v3',{});if(Number(capability.chemistry_version||0)<2||Number(capability.catalog_count)<pools.reduce((n,p)=>n+p.players.length,0))throw Error('球员评级与三人羁绊需要执行一次数据库升级 SQL。');}catch(e){if(e.code==='PGRST202'||e.status===404)throw Error('新联机规则需要执行一次数据库升级 SQL。');throw e;}
     const d=await rpc('fc_connect_v3',{p_code:create?null:code,p_mode:s.mode});
     room=d.code;roomGeneration++;shownResult=false;serverRevision=0;
     const initial=await rpc('fc_read_v3',{p_code:room});remote=initial;

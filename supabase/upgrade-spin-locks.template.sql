@@ -12,6 +12,7 @@ create table if not exists public.fc_player_catalog (
 );
 create table if not exists public.fc_era_catalog (id text primary key, from_year integer not null, to_year integer not null);
 create table if not exists public.fc_chemistry_pairs (id text primary key, left_identity text not null, right_identity text not null, bonus integer not null check(bonus between 1 and 3));
+create table if not exists public.fc_chemistry_trios (id text primary key, identities text[] not null, bonus_mode text not null check(bonus_mode in ('flat','percent')), bonus integer not null check(bonus between 1 and 10));
 create table if not exists public.fc_player_locks (
  room_code text not null references public.fc_rooms(code) on delete cascade,
  player_key text not null references public.fc_player_catalog(player_key),
@@ -21,12 +22,13 @@ create table if not exists public.fc_player_locks (
 alter table public.fc_player_catalog enable row level security;
 alter table public.fc_era_catalog enable row level security;
 alter table public.fc_chemistry_pairs enable row level security;
+alter table public.fc_chemistry_trios enable row level security;
 alter table public.fc_player_locks enable row level security;
-revoke all on public.fc_player_catalog,public.fc_era_catalog,public.fc_chemistry_pairs,public.fc_player_locks from anon,authenticated;
+revoke all on public.fc_player_catalog,public.fc_era_catalog,public.fc_chemistry_pairs,public.fc_chemistry_trios,public.fc_player_locks from anon,authenticated;
 -- @CATALOG@
 
 create or replace function public.fc_protocol_v3() returns jsonb language sql security definer set search_path=public,pg_temp as $$
- select jsonb_build_object('version',3,'catalog_count',(select count(*) from fc_player_catalog));
+ select jsonb_build_object('version',3,'chemistry_version',2,'catalog_count',(select count(*) from fc_player_catalog));
 $$;
 create or replace function public._fc_connect_rules(p_code text,p_mode text,p_rules integer)
 returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$
@@ -68,9 +70,9 @@ begin
  return jsonb_build_object('code',r.code,'mode',r.mode,'members',members,'locks',locks,'result',r.result,'rules_version',3);
 end $$;
 
-create or replace function public._fc_effective_rating(p_key text,p_position text,p_target text,p_identities text[])
+create or replace function public._fc_effective_rating(p_key text,p_position text,p_target text,p_identities text[],p_starters text[])
 returns integer language plpgsql stable security definer set search_path=public,pg_temp as $$
-declare c public.fc_player_catalog; e public.fc_era_catalog; pos_loss integer; era_loss integer:=0; chemistry integer;
+declare c public.fc_player_catalog; e public.fc_era_catalog; pos_loss integer; era_loss integer:=0; chemistry integer; trio_bonus integer;
 begin
  select * into strict c from fc_player_catalog where player_key=p_key;
  select * into strict e from fc_era_catalog where id=p_target;
@@ -88,13 +90,21 @@ begin
  end if;
  select least(3,coalesce(sum(bonus),0)) into chemistry from fc_chemistry_pairs
   where (left_identity=c.identity or right_identity=c.identity) and left_identity=any(p_identities) and right_identity=any(p_identities);
+ if c.identity=any(p_starters) then
+  select coalesce(max(case when bonus_mode='percent' then round(c.base_rating*bonus/100.0)::integer else bonus end),0) into trio_bonus
+   from fc_chemistry_trios where c.identity=any(identities) and identities<@p_starters;
+  chemistry=greatest(chemistry,trio_bonus);
+ end if;
  return greatest(15,least(100,c.base_rating+chemistry-pos_loss-era_loss));
 end $$;
+
+-- Preserve the old private helper signature for existing callers.
+create or replace function public._fc_effective_rating(p_key text,p_position text,p_target text,p_identities text[]) returns integer language sql stable security definer set search_path=public,pg_temp as $$ select _fc_effective_rating(p_key,p_position,p_target,p_identities,array[]::text[]); $$;
 
 create or replace function public.fc_submit_v3(p_code text,p_state jsonb,p_revision integer,p_request_id uuid)
 returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$
 declare r public.fc_rooms; m public.fc_members; host_state jsonb; v_player jsonb; c public.fc_player_catalog;
- ids text[]; shape text[]; actual_formation text; canonical jsonb:='[]'::jsonb; updated_state jsonb;
+ ids text[]; starter_ids text[]; shape text[]; actual_formation text; canonical jsonb:='[]'::jsonb; updated_state jsonb;
  n integer; unique_people integer; new_claims integer; ordinal integer:=0; position text; conflicting text;
  ready integer; a numeric; b numeric; h integer:=0; v integer:=0;
 begin
@@ -129,6 +139,7 @@ begin
  select count(*),count(distinct cat.identity),array_agg(cat.identity) into n,unique_people,ids
   from jsonb_array_elements(p_state->'picks') p left join fc_player_catalog cat on cat.player_key=p->>'id' where p<>'null'::jsonb;
  if n<>unique_people then raise exception 'FC_INVALID_OR_DUPLICATE_PLAYER'; end if;
+ select coalesce(array_agg(cat.identity),array[]::text[]) into starter_ids from jsonb_array_elements(p_state->'picks') with ordinality as x(player,nth) join fc_player_catalog cat on cat.player_key=player->>'id' where nth<=11 and player<>'null'::jsonb;
  if m.state is null and n<>0 then raise exception 'FC_INITIAL_STATE_MUST_BE_EMPTY'; end if;
  if m.state is not null and (m.state->'targetEra' is distinct from p_state->'targetEra' or m.state->'excludedEras' is distinct from p_state->'excludedEras') then raise exception 'FC_SETTINGS_LOCKED'; end if;
  if auth.uid()<>r.owner then
@@ -149,7 +160,7 @@ begin
   if not found or c.mode<>r.mode or exists(select 1 from jsonb_array_elements_text(p_state->'excludedEras') x where x=c.era_id) then raise exception 'FC_INVALID_PLAYER_POOL'; end if;
   if not exists(select 1 from fc_player_locks l where l.room_code=p_code and l.player_key=c.player_key and l.user_id=auth.uid()) and c.pool_id is distinct from p_state->>'pool' then raise exception 'FC_INVALID_PLAYER_POOL'; end if;
   position=case when ordinal<=11 then shape[ordinal] else 'SUB' end;
-  v_player=v_player||jsonb_build_object('name',c.name,'identity',c.identity,'baseRating',c.base_rating,'rating',_fc_effective_rating(c.player_key,position,p_state->>'targetEra',ids));
+  v_player=v_player||jsonb_build_object('name',c.name,'identity',c.identity,'baseRating',c.base_rating,'rating',_fc_effective_rating(c.player_key,position,p_state->>'targetEra',ids,starter_ids));
   canonical=canonical||jsonb_build_array(v_player);
   insert into fc_player_locks(room_code,player_key,user_id) values(p_code,c.player_key,auth.uid()) on conflict do nothing;
  end loop;
@@ -170,7 +181,7 @@ begin
  return jsonb_build_object('revision',m.revision+1,'replayed',false);
 end $$;
 -- @LEGACY_SUBMIT@
-revoke all on function public._fc_connect_rules(text,text,integer), public._fc_effective_rating(text,text,text,text[]) from public,anon,authenticated;
+revoke all on function public._fc_connect_rules(text,text,integer), public._fc_effective_rating(text,text,text,text[]),public._fc_effective_rating(text,text,text,text[],text[]) from public,anon,authenticated;
 revoke all on function public.fc_protocol_v3(),public.fc_connect(text,text),public.fc_connect_v3(text,text),public.fc_read_v3(text),public.fc_submit_v3(text,jsonb,integer,uuid) from public,anon;
 grant execute on function public.fc_protocol_v3(),public.fc_connect(text,text),public.fc_connect_v3(text,text),public.fc_read_v3(text),public.fc_submit_v3(text,jsonb,integer,uuid) to authenticated;
 notify pgrst, 'reload schema';

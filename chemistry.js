@@ -15,14 +15,27 @@ export const chemistryPairs = [
   { id:'argentina-2022', players:['lionel-messi','julian-alvarez'], name:'阿根廷新老连线', bonus:2, source:'3869685' },
   { id:'france-midfield', players:['ngolo-kante','paul-pogba'], name:'法国中场屏障', bonus:2, source:'8658' }
 ];
-export const chemistryCap = 3;
+export const chemistryTrios=[
+ {id:'bbc',players:['cristiano-ronaldo','gareth-bale','karim-benzema'],name:'BBC',mode:'flat',bonus:5},
+ {id:'msn',players:['lionel-messi','neymar','luis-suarez'],name:'MSN',mode:'flat',bonus:5},
+ {id:'dutch-three',players:['ruud-gullit','marco-van-basten','frank-rijkaard'],name:'荷兰三剑客',mode:'percent',bonus:5}
+];
+export const chemistryCap = 3; // Pair bonuses only; trios have their own rule.
 export function activeChemistry(picks) {
   const identities = new Set(picks.filter(Boolean).map(p=>p.identity));
   return chemistryPairs.filter(pair=>pair.players.every(id=>identities.has(id)));
 }
+export function activeTrios(picks){
+ const starters=new Set(picks.slice(0,11).filter(Boolean).map(p=>p.identity));
+ return chemistryTrios.filter(trio=>trio.players.every(id=>starters.has(id)));
+}
 export function chemistryBonuses(picks) {
   const result = new Map();
   for (const pair of activeChemistry(picks)) for (const id of pair.players) result.set(id,Math.min(chemistryCap,(result.get(id)||0)+pair.bonus));
+  for(const trio of activeTrios(picks))for(const id of trio.players){
+   const player=picks.slice(0,11).find(p=>p?.identity===id),bonus=trio.mode==='percent'?Math.round(player.rating*trio.bonus/100):trio.bonus;
+   result.set(id,Math.max(result.get(id)||0,bonus));
+  }
   return result;
 }
 export const chemistryBonus = (picks, player) => player ? chemistryBonuses(picks).get(player.identity)||0 : 0;

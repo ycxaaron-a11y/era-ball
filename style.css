@@ -250,3 +250,4 @@ dialog label { line-height: 1.7; }
 .player-base-rating b { margin-left: 4px; color: #e6f6cd; font-size: 13px; font-variant-numeric: tabular-nums; }
 .slot .was-tier { position: absolute; top: -8px; right: -3px; z-index: 4; display: inline-block; padding: 3px 5px; border-radius: 6px; border: 1px solid #b9c6a986; background: #111b15f2; color: #e0e8d7; font-size: 8px; line-height: 1; font-weight: 650; white-space: nowrap; box-shadow: 0 2px 5px #0004; }
 @media(max-width:430px){.slot .was-tier{font-size:7px;padding:3px 4px;}}
+.chemistry-trio{display:grid;gap:7px;margin-top:12px;padding:14px;border:1px solid #d5b65a88;border-radius:10px;background:linear-gradient(120deg,#bea64b1c,#362d160e)}.chemistry-trio>b{font-size:13px;color:#f2db94}.chemistry-trio>span{font-size:11px;line-height:1.7;color:#e0e7d5;overflow-wrap:anywhere}.chemistry-trio>small{font-size:10px;line-height:1.5;color:#bcc8aa}

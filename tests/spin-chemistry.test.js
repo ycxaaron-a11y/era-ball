@@ -46,9 +46,9 @@ test('real historical partners gain on both sides, including bench partners; unr
  assert.equal(networkState(state).picks.slice(0,11).reduce((sum,p)=>sum+(p?.rating||0),0)/11,strength(state));
  state.picks[11]=null;assert.equal(chemistryBonus(state.picks,x),0);assert.equal(playerTier(state,x),'A');
 });
-test('stacked chemistry is capped at three and never pushes ability above 100',()=>{
+test('BBC trio supersedes pair bonuses and never pushes ability above 100',()=>{
  const picks=[{identity:'cristiano-ronaldo',rating:99,positions:['LW']},{identity:'gareth-bale',rating:92,positions:['RW']},{identity:'karim-benzema',rating:92,positions:['ST']}];
- assert.equal(activeChemistry(picks).length,3);for(const p of picks)assert.equal(chemistryBonus(picks,p),3);
+ assert.equal(activeChemistry(picks).length,3);for(const p of picks)assert.equal(chemistryBonus(picks,p),5);
  const state={...freshState(),picks:[...picks,...Array(13).fill(null)]};
  assert.equal(playerAbility(state,picks[0],'LW'),100);assert.equal(playerTier(state,picks[1],'RW'),'S');
  assert.ok(!chemistryPairs.some(p=>p.players.includes('cristiano-ronaldo')&&p.players.includes('roberto-carlos')));

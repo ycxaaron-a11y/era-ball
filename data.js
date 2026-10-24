@@ -1,3 +1,4 @@
+import {rebalanceDefense} from './defense-ratings.js';
 import {expansionSquads} from './catalog-expansion.js';
 import { chemistryBonus } from './chemistry.js';
 import { chineseNames } from './player-names-zh.js';
@@ -17,7 +18,7 @@ export const eraById = id => eras.find(e => e.id === id);
 export const eraForYear = year => eras.find(e => year >= e.from && year <= e.to);
 export const tier = r => r >= 99 ? 'S+' : r >= 94 ? 'S' : r >= 88 ? 'A' : r >= 82 ? 'B' : r >= 75 ? 'C' : 'D';
 export const tierClass = t => `tier-${t === 'S+' ? 'sp' : t.toLowerCase()}`;
-const allSquads = [...worldCupSquads, ...uclSquads, ...expansionSquads];
+const allSquads = rebalanceDefense([...worldCupSquads, ...uclSquads, ...expansionSquads]);
 const heightProfiles = buildHeightProfiles(allSquads.flatMap(squad => squad.players));
 export const pools = allSquads.map(squad => ({
   ...squad, era: String(squad.year), eraId: eraForYear(squad.year).id,
