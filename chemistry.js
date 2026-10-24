@@ -10,7 +10,6 @@ export const chemistryPairs = [
   { id:'brazil-1970', players:['pele','jairzinho'], name:'桑巴锋线', bonus:2, source:'3888702' },
   { id:'total-football', players:['johan-cruyff','johan-neeskens'], name:'全攻全守', bonus:2, source:'3750235' },
   { id:'argentina-1986', players:['diego-maradona','jorge-burruchaga'], name:'阿根廷冠军连线', bonus:2, source:'3889149' },
-  { id:'milan-balance', players:['andrea-pirlo','gennaro-gattuso'], name:'米兰攻守平衡', bonus:2, source:'3750200' },
   { id:'liverpool-wings', players:['mohamed-salah','sadio-mane'], name:'红军双翼', bonus:2, source:'22912' },
   { id:'argentina-2022', players:['lionel-messi','julian-alvarez'], name:'阿根廷新老连线', bonus:2, source:'3869685' },
   { id:'france-midfield', players:['ngolo-kante','paul-pogba'], name:'法国中场屏障', bonus:2, source:'8658' }
@@ -18,9 +17,10 @@ export const chemistryPairs = [
 export const chemistryTrios=[
  {id:'bbc',players:['cristiano-ronaldo','gareth-bale','karim-benzema'],name:'BBC',mode:'flat',bonus:5},
  {id:'msn',players:['lionel-messi','neymar','luis-suarez'],name:'MSN',mode:'flat',bonus:5},
- {id:'dutch-three',players:['ruud-gullit','marco-van-basten','frank-rijkaard'],name:'荷兰三剑客',mode:'percent',bonus:5}
+ {id:'dutch-three',players:['ruud-gullit','marco-van-basten','frank-rijkaard'],name:'荷兰三剑客',mode:'flat',bonus:5}
 ];
 export const chemistryCap = 3; // Pair bonuses only; trios have their own rule.
+// Match the person across all clubs/eras and all 16 roster slots.
 export function activeChemistry(picks) {
   const identities = new Set(picks.filter(Boolean).map(p=>p.identity));
   return chemistryPairs.filter(pair=>pair.players.every(id=>identities.has(id)));

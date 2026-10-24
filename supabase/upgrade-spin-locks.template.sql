@@ -40,7 +40,7 @@ revoke all on public.fc_player_catalog,public.fc_era_catalog,public.fc_chemistry
 -- @CATALOG@
 
 create or replace function public.fc_protocol_v3() returns jsonb language sql security definer set search_path=public,pg_temp as $$
- select jsonb_build_object('version',3,'chemistry_version',3,'rating_version',8,'room_version',9,'catalog_count',(select count(*) from fc_player_catalog));
+ select jsonb_build_object('version',3,'chemistry_version',4,'rating_version',8,'room_version',9,'catalog_count',(select count(*) from fc_player_catalog));
 $$;
 create or replace function public._fc_connect_rules(p_code text,p_mode text,p_rules integer)
 returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$
