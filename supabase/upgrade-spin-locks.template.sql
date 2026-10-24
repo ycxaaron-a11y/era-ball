@@ -4,12 +4,24 @@ begin;
 alter table public.fc_rooms add column if not exists rules_version integer not null default 2;
 alter table public.fc_members add column if not exists revision integer not null default 0;
 alter table public.fc_members add column if not exists last_request_id uuid;
+alter table public.fc_rooms add column if not exists capacity integer not null default 2;
+alter table public.fc_rooms drop constraint if exists fc_rooms_mode_check;
+alter table public.fc_rooms add constraint fc_rooms_mode_check check(mode in ('world_cup','ucl','euro','copa_america'));
+alter table public.fc_rooms drop constraint if exists fc_rooms_capacity_check;
+alter table public.fc_rooms add constraint fc_rooms_capacity_check check(capacity between 2 and 4);
+alter table public.fc_members add column if not exists seat integer;
+with ordered as (select m.room_code,m.user_id,(row_number() over(partition by m.room_code order by (m.user_id=r.owner) desc,m.user_id)-1)::integer as assigned from public.fc_members m join public.fc_rooms r on r.code=m.room_code)
+ update public.fc_members m set seat=o.assigned from ordered o where m.room_code=o.room_code and m.user_id=o.user_id and m.seat is null;
+alter table public.fc_members alter column seat set not null;
+create unique index if not exists fc_member_seats on public.fc_members(room_code,seat);
 create table if not exists public.fc_player_catalog (
  player_key text primary key, identity text not null, mode text not null,
  pool_id text not null, era_id text not null, year integer not null,
- name text not null, base_rating integer not null check(base_rating between 1 and 100),
+ name text not null, base_rating integer not null check(base_rating between 1 and 110),
  positions text[] not null, profile text not null
 );
+alter table public.fc_player_catalog drop constraint if exists fc_player_catalog_base_rating_check;
+alter table public.fc_player_catalog add constraint fc_player_catalog_base_rating_check check(base_rating between 1 and 110);
 create table if not exists public.fc_era_catalog (id text primary key, from_year integer not null, to_year integer not null);
 create table if not exists public.fc_chemistry_pairs (id text primary key, left_identity text not null, right_identity text not null, bonus integer not null check(bonus between 1 and 3));
 create table if not exists public.fc_chemistry_trios (id text primary key, identities text[] not null, bonus_mode text not null check(bonus_mode in ('flat','percent')), bonus integer not null check(bonus between 1 and 10));
@@ -28,14 +40,14 @@ revoke all on public.fc_player_catalog,public.fc_era_catalog,public.fc_chemistry
 -- @CATALOG@
 
 create or replace function public.fc_protocol_v3() returns jsonb language sql security definer set search_path=public,pg_temp as $$
- select jsonb_build_object('version',3,'chemistry_version',2,'catalog_count',(select count(*) from fc_player_catalog));
+ select jsonb_build_object('version',3,'chemistry_version',2,'rating_version',8,'room_version',9,'catalog_count',(select count(*) from fc_player_catalog));
 $$;
 create or replace function public._fc_connect_rules(p_code text,p_mode text,p_rules integer)
 returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$
 declare c text; r public.fc_rooms; n integer;
 begin
  if auth.uid() is null then raise exception 'Authentication required'; end if;
- if p_mode not in ('world_cup','ucl') or p_mode is null then raise exception 'Invalid mode'; end if;
+ if p_mode not in ('world_cup','ucl','euro','copa_america') or p_mode is null then raise exception 'Invalid mode'; end if;
  if p_code is null then
   loop
    c=upper(substr(replace(gen_random_uuid()::text,'-',''),1,8));
@@ -48,15 +60,28 @@ begin
   if r.rules_version<>p_rules then raise exception 'FC_RULES_MISMATCH'; end if;
   if r.result is not null then raise exception 'FC_ROOM_FINISHED'; end if;
   select count(*) into n from fc_members where room_code=r.code;
-  if n>=2 and not exists(select 1 from fc_members where room_code=r.code and user_id=auth.uid()) then raise exception 'Room is full'; end if;
+  if n>=r.capacity and not exists(select 1 from fc_members where room_code=r.code and user_id=auth.uid()) then raise exception 'Room is full'; end if;
  end if;
- insert into fc_members(room_code,user_id) values(r.code,auth.uid()) on conflict do nothing;
- return jsonb_build_object('code',r.code,'mode',r.mode,'rules_version',r.rules_version);
+ if not exists(select 1 from fc_members where room_code=r.code and user_id=auth.uid()) then
+  select min(i) into n from generate_series(0,r.capacity-1) i where not exists(select 1 from fc_members where room_code=r.code and seat=i);
+  insert into fc_members(room_code,user_id,seat) values(r.code,auth.uid(),n);
+ end if;
+ return jsonb_build_object('code',r.code,'mode',r.mode,'capacity',r.capacity,'rules_version',r.rules_version);
 end $$;
 create or replace function public.fc_connect(p_code text,p_mode text)
 returns jsonb language sql security definer set search_path=public,pg_temp as $$ select _fc_connect_rules(p_code,p_mode,2); $$;
 create or replace function public.fc_connect_v3(p_code text,p_mode text)
 returns jsonb language sql security definer set search_path=public,pg_temp as $$ select _fc_connect_rules(p_code,p_mode,3); $$;
+
+create or replace function public.fc_create_room_v9(p_mode text,p_capacity integer)
+returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$
+declare connected jsonb;
+begin
+ if p_capacity is null or p_capacity not between 2 and 4 then raise exception 'FC_INVALID_CAPACITY'; end if;
+ connected=_fc_connect_rules(null,p_mode,3);
+ update fc_rooms set capacity=p_capacity where code=connected->>'code' and owner=auth.uid();
+ return connected||jsonb_build_object('capacity',p_capacity);
+end $$;
 
 create or replace function public.fc_read_v3(p_code text)
 returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$
@@ -65,9 +90,9 @@ begin
  if auth.uid() is null or not exists(select 1 from fc_members where room_code=p_code and user_id=auth.uid()) then raise exception 'Not a member'; end if;
  select * into r from fc_rooms where code=p_code;
  if r.rules_version<>3 then raise exception 'FC_RULES_MISMATCH'; end if;
- select jsonb_agg(jsonb_build_object('host',user_id=r.owner,'is_self',user_id=auth.uid(),'state',state,'revision',revision)) into members from fc_members where room_code=p_code;
+ select jsonb_agg(jsonb_build_object('host',user_id=r.owner,'is_self',user_id=auth.uid(),'state',state,'revision',revision,'seat',seat) order by seat) into members from fc_members where room_code=p_code;
  select coalesce(jsonb_agg(jsonb_build_object('player_id',player_key,'mine',user_id=auth.uid())),'[]'::jsonb) into locks from fc_player_locks where room_code=p_code;
- return jsonb_build_object('code',r.code,'mode',r.mode,'members',members,'locks',locks,'result',r.result,'rules_version',3);
+ return jsonb_build_object('code',r.code,'mode',r.mode,'members',members,'locks',locks,'result',r.result,'capacity',r.capacity,'rules_version',3);
 end $$;
 
 create or replace function public._fc_effective_rating(p_key text,p_position text,p_target text,p_identities text[],p_starters text[])
@@ -95,7 +120,7 @@ begin
    from fc_chemistry_trios where c.identity=any(identities) and identities<@p_starters;
   chemistry=greatest(chemistry,trio_bonus);
  end if;
- return greatest(15,least(100,c.base_rating+chemistry-pos_loss-era_loss));
+ return greatest(15,c.base_rating+chemistry-pos_loss-era_loss);
 end $$;
 
 -- Preserve the old private helper signature for existing callers.
@@ -105,8 +130,8 @@ create or replace function public.fc_submit_v3(p_code text,p_state jsonb,p_revis
 returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$
 declare r public.fc_rooms; m public.fc_members; host_state jsonb; v_player jsonb; c public.fc_player_catalog;
  ids text[]; starter_ids text[]; shape text[]; actual_formation text; canonical jsonb:='[]'::jsonb; updated_state jsonb;
- n integer; unique_people integer; new_claims integer; ordinal integer:=0; position text; conflicting text;
- ready integer; a numeric; b numeric; h integer:=0; v integer:=0;
+ pool_slots integer; n integer; unique_people integer; new_claims integer; ordinal integer:=0; position text; conflicting text;
+ team_name text; ready integer; a numeric; b numeric; h integer:=0; v integer:=0;
 begin
  if auth.uid() is null then raise exception 'Authentication required'; end if;
  select * into r from fc_rooms where code=p_code for update;
@@ -114,6 +139,9 @@ begin
  select * into m from fc_members where room_code=p_code and user_id=auth.uid();
  if not found then raise exception 'Not a member'; end if;
  if p_request_id is null or p_revision is null then raise exception 'FC_INVALID_REQUEST'; end if;
+ team_name=coalesce(nullif(btrim(p_state->>'teamName'),''),'我的球队');
+ if char_length(team_name)>20 or team_name ~ '[[:cntrl:]]' then raise exception 'FC_INVALID_TEAM_NAME'; end if;
+ if m.state->>'teamName' is not null and m.state->>'teamName'<>team_name then raise exception 'FC_NAME_LOCKED'; end if;
  if m.last_request_id=p_request_id then return jsonb_build_object('revision',m.revision,'replayed',true,'result',r.result); end if;
  if m.revision<>p_revision then raise exception 'FC_STALE_STATE' using detail=m.revision::text; end if;
  if r.result is not null then raise exception 'FC_ROOM_FINISHED'; end if;
@@ -141,6 +169,10 @@ begin
  if n<>unique_people then raise exception 'FC_INVALID_OR_DUPLICATE_PLAYER'; end if;
  select coalesce(array_agg(cat.identity),array[]::text[]) into starter_ids from jsonb_array_elements(p_state->'picks') with ordinality as x(player,nth) join fc_player_catalog cat on cat.player_key=player->>'id' where nth<=11 and player<>'null'::jsonb;
  if m.state is null and n<>0 then raise exception 'FC_INITIAL_STATE_MUST_BE_EMPTY'; end if;
+ if m.state is null then
+  select coalesce(sum(least(r.capacity,versions)),0) into pool_slots from (select count(*)::integer as versions from fc_player_catalog cat where cat.mode=r.mode and not exists(select 1 from jsonb_array_elements_text(p_state->'excludedEras') era where era=cat.era_id) group by cat.identity) available;
+  if pool_slots<16*r.capacity then raise exception 'FC_INSUFFICIENT_POOL'; end if;
+ end if;
  if m.state is not null and (m.state->'targetEra' is distinct from p_state->'targetEra' or m.state->'excludedEras' is distinct from p_state->'excludedEras') then raise exception 'FC_SETTINGS_LOCKED'; end if;
  if auth.uid()<>r.owner then
   select state into host_state from fc_members where room_code=p_code and user_id=r.owner;
@@ -164,12 +196,12 @@ begin
   canonical=canonical||jsonb_build_array(v_player);
   insert into fc_player_locks(room_code,player_key,user_id) values(p_code,c.player_key,auth.uid()) on conflict do nothing;
  end loop;
- updated_state=jsonb_set(p_state,'{picks}',canonical);
+ updated_state=jsonb_set(p_state,'{picks}',canonical)||jsonb_build_object('teamName',team_name);
  update fc_members set state=updated_state,revision=revision+1,last_request_id=p_request_id where room_code=p_code and user_id=auth.uid();
  update fc_rooms set revision=revision+1 where code=p_code;
  select count(*) into ready from fc_members member where member.room_code=p_code and member.state is not null
   and (select count(*) from jsonb_array_elements(member.state->'picks') p where p<>'null'::jsonb)=16;
- if ready=2 then
+ if ready=r.capacity then
   select avg((p->>'rating')::numeric) into a from fc_members member,lateral jsonb_array_elements(member.state->'picks') with ordinality x(p,i) where member.room_code=p_code and member.user_id=r.owner and i<=11;
   select avg((p->>'rating')::numeric) into b from fc_members member,lateral jsonb_array_elements(member.state->'picks') with ordinality x(p,i) where member.room_code=p_code and member.user_id<>r.owner and i<=11;
   for i in 1..5 loop
@@ -182,7 +214,7 @@ begin
 end $$;
 -- @LEGACY_SUBMIT@
 revoke all on function public._fc_connect_rules(text,text,integer), public._fc_effective_rating(text,text,text,text[]),public._fc_effective_rating(text,text,text,text[],text[]) from public,anon,authenticated;
-revoke all on function public.fc_protocol_v3(),public.fc_connect(text,text),public.fc_connect_v3(text,text),public.fc_read_v3(text),public.fc_submit_v3(text,jsonb,integer,uuid) from public,anon;
-grant execute on function public.fc_protocol_v3(),public.fc_connect(text,text),public.fc_connect_v3(text,text),public.fc_read_v3(text),public.fc_submit_v3(text,jsonb,integer,uuid) to authenticated;
+revoke all on function public.fc_create_room_v9(text,integer),public.fc_protocol_v3(),public.fc_connect(text,text),public.fc_connect_v3(text,text),public.fc_read_v3(text),public.fc_submit_v3(text,jsonb,integer,uuid) from public,anon;
+grant execute on function public.fc_create_room_v9(text,integer),public.fc_protocol_v3(),public.fc_connect(text,text),public.fc_connect_v3(text,text),public.fc_read_v3(text),public.fc_submit_v3(text,jsonb,integer,uuid) to authenticated;
 notify pgrst, 'reload schema';
 commit;

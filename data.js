@@ -1,4 +1,6 @@
-import {rebalanceDefense} from './defense-ratings.js';
+import {internationalSquads} from './catalog-international.js';
+import {modes,isMode} from './modes.js';
+import {balanceRatings} from './rating-balance.js';
 import {expansionSquads} from './catalog-expansion.js';
 import { chemistryBonus } from './chemistry.js';
 import { chineseNames } from './player-names-zh.js';
@@ -16,9 +18,9 @@ export const eras = [
 ].map(([id, label, from, to]) => ({ id, label, from, to }));
 export const eraById = id => eras.find(e => e.id === id);
 export const eraForYear = year => eras.find(e => year >= e.from && year <= e.to);
-export const tier = r => r >= 99 ? 'S+' : r >= 94 ? 'S' : r >= 88 ? 'A' : r >= 82 ? 'B' : r >= 75 ? 'C' : 'D';
+export const tier = r => r >= 105 ? 'S+' : r >= 98 ? 'S' : r >= 90 ? 'A' : r >= 82 ? 'B' : r >= 75 ? 'C' : 'D';
 export const tierClass = t => `tier-${t === 'S+' ? 'sp' : t.toLowerCase()}`;
-const allSquads = rebalanceDefense([...worldCupSquads, ...uclSquads, ...expansionSquads]);
+const allSquads = balanceRatings([...worldCupSquads, ...uclSquads, ...expansionSquads, ...internationalSquads]);
 const heightProfiles = buildHeightProfiles(allSquads.flatMap(squad => squad.players));
 export const pools = allSquads.map(squad => ({
   ...squad, era: String(squad.year), eraId: eraForYear(squad.year).id,
@@ -84,7 +86,7 @@ export function eraAdjustment(p, targetEra) {
 }
 export function fit(p, pos, targetEra, bonus = 0) {
   if (!p) return 0;
-  return Math.max(15, Math.min(100, p.rating + bonus - positionPenalty(p, pos) - eraAdjustment(p, targetEra).penalty));
+  return Math.max(15, p.rating + bonus - positionPenalty(p, pos) - eraAdjustment(p, targetEra).penalty);
 }
 export const playerAbility = (s, p, pos) => fit(p, pos, s.targetEra, chemistryBonus(s.picks, p));
 export function playerTier(s, p, pos) {
@@ -95,8 +97,8 @@ export function playerTier(s, p, pos) {
 export function strength(s) {
   return s.picks.slice(0, 11).reduce((sum, p, i) => sum + playerAbility(s, p, positions(s.formation)[i]), 0) / 11;
 }
-export function freshState(mode = 'world_cup') {
-  return { version: 2, mode, formation: '4-3-3', picks: Array(16).fill(null), pool: null,
+export function freshState(mode = 'world_cup',teamName='我的球队') {
+  return { version: 2, mode, teamName, formation: '4-3-3', picks: Array(16).fill(null), pool: null,
     rerolls: 3, targetEra: '2020s', excludedEras: [], started: false, drawPhase: 'awaiting', lockProtocol: 3 };
 }
 export function availablePools(s, blockedIds = []) {
@@ -105,13 +107,18 @@ export function availablePools(s, blockedIds = []) {
   return pools.filter(p => p.mode === s.mode && !s.excludedEras.includes(p.eraId) && p.players.some(x => !picked.has(x.identity) && !blocked.has(x.id)));
 }
 export function validateSettings(s) {
-  if (!['world_cup', 'ucl'].includes(s.mode) || !eraById(s.targetEra)) throw Error('请选择有效的赛事和征战年代。');
+  if (!isMode(s.mode) || !eraById(s.targetEra)) throw Error('请选择有效的赛事和征战年代。');
   if (!Array.isArray(s.excludedEras) || s.excludedEras.some(id => !eraById(id))) throw Error('排除年代无效。');
   const candidates = availablePools(s);
   if (!candidates.length || new Set(candidates.flatMap(p => p.players.map(x => x.identity))).size < 16) {
     throw Error('请至少保留一个有足够球员的年代，才能完成 16 人选秀。');
   }
 }
+export function roomPoolCapacity(state,capacity){
+ const versions=new Map();for(const pool of pools.filter(p=>p.mode===state.mode&&!state.excludedEras.includes(p.eraId)))for(const player of pool.players)versions.set(player.identity,(versions.get(player.identity)||0)+1);
+ return [...versions.values()].reduce((sum,n)=>sum+Math.min(capacity,n),0);
+}
+export function validateRoomPool(state,capacity){if(roomPoolCapacity(state,capacity)<16*capacity)throw Error(`保留的年代不足以让 ${capacity} 人各选满 16 人，请取消更多年代的 Lock 后再创建房间。`);}
 export function drawPool(s, random = Math.random, blockedIds = []) {
   const options = availablePools(s, blockedIds);
   if (!options.length) return null;
@@ -150,7 +157,7 @@ export function reroll(s, random = Math.random) {
 }
 export function hydrateState(saved) {
   if (saved?.lineupFormation) { saved = { ...saved, formation: saved.lineupFormation }; delete saved.lineupFormation; }
-  const fallback = freshState(saved?.mode === 'ucl' ? 'ucl' : 'world_cup');
+  const fallback = freshState(isMode(saved?.mode)?saved.mode:'world_cup',saved?.teamName||'我的球队');
   if (!saved || saved.version !== 2 || !formations[saved.formation] || !Array.isArray(saved.picks) || saved.picks.length !== 16 || !Number.isInteger(saved.rerolls) || saved.rerolls < 0 || saved.rerolls > 3) return fallback;
   try {
     validateSettings(saved);

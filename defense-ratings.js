@@ -1,3 +1,4 @@
+// Historical v7 snapshot retained for old cached clients. Current grading uses rating-balance.js.
 // Editorial rebalancing of specific historical defensive performances.
 // These override the older cap-constrained estimates, not every version of a name.
 export const defenseRatings={

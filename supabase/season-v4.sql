@@ -9,7 +9,7 @@ begin
  select * into r from fc_rooms where code=p_code for update;
  if r.rules_version<>3 then raise exception 'FC_RULES_MISMATCH'; end if;
  select count(*) into n from fc_members where room_code=p_code and jsonb_array_length(state->'picks')=16 and not exists(select 1 from jsonb_array_elements(state->'picks') p where p='null'::jsonb);
- if n<>2 then raise exception 'FC_SEASON_WAITING'; end if;
+ if n<>r.capacity then raise exception 'FC_SEASON_WAITING'; end if;
  if r.season_v4 is null then
   r.season_v4=jsonb_build_object('version',4,'seed',floor(random()*2147483647)::bigint,'cursor',0);
  end if;

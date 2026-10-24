@@ -18,11 +18,17 @@ function match(home,away,knockout,rng,id){
  return{id,home:home.id,away:away.id,h,a,events,winner,penalties,mvp:best(),homeMvp:best(home.id),awayMvp:best(away.id),performances};
 }
 export function standings(teams,matches){return teams.map(t=>{const row={id:t.id,name:t.name,played:0,points:0,gf:0,ga:0,won:0,drawn:0,lost:0};for(const m of matches){if(m.home!==t.id&&m.away!==t.id)continue;const [a,b]=m.home===t.id?[m.h,m.a]:[m.a,m.h];row.played++;row.gf+=a;row.ga+=b;if(a>b){row.points+=3;row.won++;}else if(a===b){row.points++;row.drawn++;}else row.lost++;}return row;}).sort((a,b)=>b.points-a.points||(b.gf-b.ga)-(a.gf-a.ga)||b.gf-a.gf||a.id.localeCompare(b.id));}
-function botPlayers(pool,id){const remaining=[...pool.players];return positions('4-3-3').map((pos,i)=>{remaining.sort((a,b)=>(b.rating-positionPenalty(b,pos))-(a.rating-positionPenalty(a,pos)));const p=remaining.shift();return{id:`${id}:${i}`,name:p.name,pos,rating:Math.max(15,p.rating-positionPenalty(p,pos))};});}
-export function createTournament({mode='ucl',seed,humans}){
+function botPlayers(pool,id,adjustment=3){
+ const remaining=[...pool.players],players=positions('4-3-3').map((pos,i)=>{remaining.sort((a,b)=>(b.rating-positionPenalty(b,pos))-(a.rating-positionPenalty(a,pos)));const p=remaining.shift();return{id:`${id}:${i}`,name:p.name,pos,rating:Math.max(15,p.rating-positionPenalty(p,pos)-adjustment)};});
+ // The new national-team cups contain almost exclusively deep finalist squads.
+ // Keep those AI averages comparable to the established modes, without changing human teams.
+ if(adjustment>0&&['euro','copa_america'].includes(pool.mode)){const excess=Math.max(0,Math.ceil(players.reduce((sum,p)=>sum+p.rating,0)/11-88));for(const p of players)p.rating=Math.max(15,p.rating-excess);}
+ return players;
+}
+export function createTournament({mode='ucl',seed,humans,aiAdjustment=3}){
  const rng=seeded(seed);const candidates=pools.filter(p=>p.mode===mode).map(p=>({p,order:rng()})).sort((a,b)=>a.order-b.order);
- const bots=candidates.slice(0,16-humans.length).map(({p},i)=>({id:`bot-${i}`,name:`${p.team} ${p.year}`,players:botPlayers(p,`bot-${i}`)}));
- const groups=Array.from({length:4},(_,i)=>({name:'ABCD'[i],teams:[]}));groups[0].teams.push(humans[0]);if(humans[1])groups[2].teams.push(humans[1]);for(const group of groups)while(group.teams.length<4)group.teams.push(bots.shift());
+ const bots=candidates.slice(0,16-humans.length).map(({p},i)=>({id:`bot-${i}`,name:`${p.team} ${p.year}`,players:botPlayers(p,`bot-${i}`,Math.max(0,aiAdjustment))}));
+ const groups=Array.from({length:4},(_,i)=>({name:'ABCD'[i],teams:[]}));if(humans.length<1||humans.length>4)throw Error('杯赛支持 1–4 名玩家');humans.forEach((human,i)=>groups[[0,2,1,3][i]].teams.push(human));for(const group of groups)while(group.teams.length<4)group.teams.push(bots.shift());
  const teams=groups.flatMap(g=>g.teams),phases=[];const fixtures=[[[0,3],[1,2]],[[0,2],[3,1]],[[0,1],[2,3]]];
  for(let r=0;r<3;r++)phases.push({title:`小组赛 · 第 ${r+1} 轮`,matches:groups.flatMap(g=>fixtures[r].map(([a,b],i)=>({...match(g.teams[a],g.teams[b],false,rng,`g${r}-${g.name}-${i}`),group:g.name})))});
  const rows=groups.map(g=>standings(g.teams,phases.flatMap(p=>p.matches).filter(m=>m.group===g.name))),find=id=>teams.find(t=>t.id===id);

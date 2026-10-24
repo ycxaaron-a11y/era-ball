@@ -36,20 +36,20 @@ test('opponent locks match the exact team-era player key, not all versions of a 
  assert.ok(!availablePools(state,fullPool.players.map(p=>p.id)).some(p=>p.id===fullPool.id));
 });
 test('real historical partners gain on both sides, including bench partners; unrelated players do not',()=>{
- const x={identity:'xavi',rating:92,positions:['CM'],year:2011,profile:'universal'};
+ const x={identity:'xavi',rating:96,positions:['CM'],year:2011,profile:'universal'};
  const i={identity:'andres-iniesta',rating:91,positions:['CM'],year:2011,profile:'universal'};
  const state=freshState();state.picks[3]=x;assert.equal(chemistryBonus(state.picks,x),0);
  state.picks[11]=i;assert.equal(activeChemistry(state.picks).length,1);
  assert.equal(chemistryBonus(state.picks,x),2);assert.equal(chemistryBonus(state.picks,i),2);
- assert.equal(playerAbility(state,x,'CM'),94);assert.equal(playerTier(state,x),'S');
- assert.equal(networkState(state).picks[3].rating,94);
+ assert.equal(playerAbility(state,x,'CM'),98);assert.equal(playerTier(state,x),'S');
+ assert.equal(networkState(state).picks[3].rating,98);
  assert.equal(networkState(state).picks.slice(0,11).reduce((sum,p)=>sum+(p?.rating||0),0)/11,strength(state));
  state.picks[11]=null;assert.equal(chemistryBonus(state.picks,x),0);assert.equal(playerTier(state,x),'A');
 });
-test('BBC trio supersedes pair bonuses and never pushes ability above 100',()=>{
+test('BBC trio supersedes pair bonuses and can raise ability beyond the old 100 cap',()=>{
  const picks=[{identity:'cristiano-ronaldo',rating:99,positions:['LW']},{identity:'gareth-bale',rating:92,positions:['RW']},{identity:'karim-benzema',rating:92,positions:['ST']}];
  assert.equal(activeChemistry(picks).length,3);for(const p of picks)assert.equal(chemistryBonus(picks,p),5);
  const state={...freshState(),picks:[...picks,...Array(13).fill(null)]};
- assert.equal(playerAbility(state,picks[0],'LW'),100);assert.equal(playerTier(state,picks[1],'RW'),'S');
+ assert.equal(playerAbility(state,picks[0],'LW'),104);assert.equal(playerTier(state,picks[1],'RW'),'A');
  assert.ok(!chemistryPairs.some(p=>p.players.includes('cristiano-ronaldo')&&p.players.includes('roberto-carlos')));
 });

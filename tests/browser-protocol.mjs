@@ -10,7 +10,7 @@ async function bridge(route){
  try{
   if(url.pathname==='/auth/v1/signup'){const uid=randomUUID();await addUser(uid);return route.fulfill({json:{access_token:uid,refresh_token:uid,expires_at:Math.floor(Date.now()/1000)+3600}})}
   const uid=(await req.allHeaders()).authorization?.replace('Bearer ','');const name=url.pathname.split('/').at(-1);
-  const keys={fc_protocol_v3:[],fc_season_v4:['p_code','p_expected'],fc_connect_v3:['p_code','p_mode'],fc_read_v3:['p_code'],fc_submit_v3:['p_code','p_state','p_revision','p_request_id']}[name];
+  const keys={fc_protocol_v3:[],fc_create_room_v9:['p_mode','p_capacity'],fc_season_v4:['p_code','p_expected'],fc_connect_v3:['p_code','p_mode'],fc_read_v3:['p_code'],fc_submit_v3:['p_code','p_state','p_revision','p_request_id']}[name];
   if(!keys)throw Error('Unknown test RPC');
   const result=await rpc(uid,name,keys.map(k=>body[k]));
   if(name==='fc_submit_v3')submitted.push({uid,count:body.p_state.picks.filter(Boolean).length});
@@ -70,12 +70,12 @@ try{
  await p.goto('http://127.0.0.1:3000/');await p.click('#ucl');for(const box of await p.locator('input[name=excluded]').all())if(await box.inputValue()!=='2010s-b')await box.check();await p.click('#start-draft');
  async function choose(id,slot){await p.click('#spin');await p.waitForSelector('[data-player]');await p.locator(`[data-player="${id}"]`).click();await p.click(`[data-slot="${slot}"]`);await p.click(`[data-slot="${slot}"]`)}
  await choose('ucl-real-madrid-2017:gareth-bale',2);assert.equal(await p.locator('.placement-impact').count(),0);await choose('ucl-liverpool-2019:virgil-van-dijk',7);await choose('ucl-real-madrid-2017:cristiano-ronaldo',0);
- assert.match(await p.locator('[data-slot="2"]').getAttribute('class'),/tier-s\b/);assert.match(await p.locator('#chemistry-panel').textContent(),/贝尔/);assert.match(await p.locator('[data-slot="2"] .was-tier').textContent(),/was A/);
+ assert.match(await p.locator('[data-slot="2"]').getAttribute('class'),/tier-a\b/);assert.match(await p.locator('#chemistry-panel').textContent(),/贝尔/);assert.match(await p.locator('[data-slot="2"] .was-tier').textContent(),/was A/);
  await choose('ucl-liverpool-2019:mohamed-salah',1);await choose('ucl-real-madrid-2017:karim-benzema',11);assert.match(await p.locator('[data-slot="11"]').getAttribute('class'),/tier-s\b/);await p.screenshot({path:'/tmp/era-v3-chemistry.png',fullPage:true});assert.deepEqual(errors,[]);
  console.log('PASS local browser: confirmed real partners activate panel, boost both and promote Benzema A→S with border change');
 
  const impact=await browser.newContext({viewport:{width:1440,height:1100}});await impact.addInitScript(()=>Math.random=()=>0);const ip=await impact.newPage();await ip.goto('http://127.0.0.1:3000/');await ip.click('#era-open');await ip.click('#start-draft');await ip.click('#spin');await ip.waitForSelector('[data-player]');
- const star=ip.locator('[data-player].tier-sp').first();assert.equal(await star.evaluate(e=>getComputedStyle(e).animationDuration),'1.8s, 1.8s');await star.click();await ip.click('[data-slot="2"]');assert.equal(await ip.locator('.placement-impact').count(),0);await ip.click('[data-slot="2"]');await ip.waitForSelector('.placement-impact');assert.equal(await ip.locator('.impact-dust').count(),5);await ip.waitForTimeout(140);await ip.screenshot({path:'/tmp/era-v3-impact.png',fullPage:true});await ip.waitForTimeout(650);assert.equal(await ip.locator('.placement-impact').count(),0);await ip.reload();assert.equal(await ip.locator('.placement-impact').count(),0);
+ const star=ip.locator('[data-player].tier-sp').first();assert.equal(await star.evaluate(e=>getComputedStyle(e).animationDuration),'1.15s, 2.8s');await star.click();await ip.click('[data-slot="2"]');assert.equal(await ip.locator('.placement-impact').count(),0);await ip.click('[data-slot="2"]');await ip.waitForSelector('.placement-impact');assert.equal(await ip.locator('.impact-dust').count(),5);await ip.waitForTimeout(140);await ip.screenshot({path:'/tmp/era-v3-impact.png',fullPage:true});await ip.waitForTimeout(650);assert.equal(await ip.locator('.placement-impact').count(),0);await ip.reload();assert.equal(await ip.locator('.placement-impact').count(),0);
  console.log('PASS landing: faster lightning, preview silent, confirmed S+ drop/ring/five dust plumes, one-shot cleanup, no replay on reload');
 }finally{await browser.close();await db.close()}
 
