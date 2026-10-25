@@ -94,3 +94,7 @@ AI 按真实阵容与位置选人，再统一下调 2 分（之前为 3 分）�
 新增赛事名单见 [欧洲杯与美洲杯资料说明](docs/international-rosters.md)。欧洲杯现有 8 个来源年代，美洲杯 7 个，无球队年代明确标记不可作为来源抽取；征战战术年代仍可选全部 12 个。
 
 可选测试：`tests/multiplayer-four.mjs` 验证三人美洲杯、四人欧洲杯及升级幂等；`tests/browser-four.mjs` 从首次命名、连接检测和真实创建/加入 UI 开始，用四个浏览器走完共同赛季、决赛、奖项、重开与美洲杯选秀。两者均使用本地 PostgreSQL 测试库，托管 Supabase 仍需手动运行完整 SQL。
+
+## 静态发布与版本核对
+
+`npm run build` 生成 `dist/`，Netlify 自动执行此命令并发布该目录。每次构建按内容哈希为完整 JS 模块图和 CSS 使用独立的 `releases/<hash>/` 路径，避免首页更新但依赖模块仍是旧版。首页与 `release.json` 禁止缓存，资源目录使用不可变缓存。页脚显示“星尘版 · R13 · <hash>”用于核对实际加载版本；GitHub 已推送不等于 Netlify 已发布，部署状态须在 Netlify 确认。
