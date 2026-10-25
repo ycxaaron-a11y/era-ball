@@ -40,7 +40,7 @@ revoke all on public.fc_player_catalog,public.fc_era_catalog,public.fc_chemistry
 -- @CATALOG@
 
 create or replace function public.fc_protocol_v3() returns jsonb language sql security definer set search_path=public,pg_temp as $$
- select jsonb_build_object('version',3,'chemistry_version',4,'rating_version',8,'room_version',11,'catalog_count',(select count(*) from fc_player_catalog));
+ select jsonb_build_object('version',3,'chemistry_version',4,'rating_version',8,'room_version',12,'catalog_count',(select count(*) from fc_player_catalog));
 $$;
 create or replace function public._fc_connect_rules(p_code text,p_mode text,p_rules integer)
 returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$
@@ -180,8 +180,7 @@ begin
   if host_state is null or host_state->'targetEra' is distinct from p_state->'targetEra' or host_state->'excludedEras' is distinct from p_state->'excludedEras' then raise exception 'FC_SETTINGS_LOCKED'; end if;
  end if;
  if m.state is not null and exists(select 1 from jsonb_array_elements(m.state->'picks') old where old<>'null'::jsonb) then
-  if coalesce(m.state->>'lineupFormation',m.state->>'formation') is distinct from actual_formation
-    or exists(select 1 from jsonb_array_elements(m.state->'picks') with ordinality as prior(player,idx)
+  if exists(select 1 from jsonb_array_elements(m.state->'picks') with ordinality as prior(player,idx)
       where player<>'null'::jsonb and player->>'id' is distinct from p_state->'picks'->(idx::integer-1)->>'id') then raise exception 'FC_ROSTER_LOCKED'; end if;
  end if;
  select count(*) into new_claims from jsonb_array_elements(p_state->'picks') p where p<>'null'::jsonb

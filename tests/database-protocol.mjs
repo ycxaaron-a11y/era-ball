@@ -56,7 +56,7 @@ try{
  for(let i=0;i<11;i++)if(chem.states[0].picks[i])assert.equal(stored.picks[i].rating,playerAbility(chem.states[0],chem.states[0].picks[i],positions(chem.states[0].formation)[i]));
  assert.equal(stored.picks[2].rating,100);assert.equal((await rpc(a,'fc_protocol_v3',[])).chemistry_version,4);assert.equal((await rpc(a,'fc_protocol_v3',[])).rating_version,8);
  const benched={...chem.states[0],picks:[...chem.states[0].picks]};benched.picks[11]=benched.picks[1];benched.picks[1]=null;await assert.rejects(write(chem,0,benched),/FC_ROSTER_LOCKED/);
- const swapped={...chem.states[0],picks:[...chem.states[0].picks]};[swapped.picks[0],swapped.picks[2]]=[swapped.picks[2],swapped.picks[0]];await assert.rejects(write(chem,0,swapped),/FC_ROSTER_LOCKED/);await assert.rejects(write(chem,0,{...chem.states[0],formation:'3-3-4'}),/FC_ROSTER_LOCKED/);
+ const swapped={...chem.states[0],picks:[...chem.states[0].picks]};[swapped.picks[0],swapped.picks[2]]=[swapped.picks[2],swapped.picks[0]];await assert.rejects(write(chem,0,swapped),/FC_ROSTER_LOCKED/);const oldIds=chem.states[0].picks.map(p=>p?.id||null);await write(chem,0,{...chem.states[0],formation:'3-3-4'});const reformed=(await rpc(a,'fc_read_v3',[chem.code])).members.find(m=>m.is_self).state;assert.equal(reformed.lineupFormation,'3-3-4');assert.deepEqual(reformed.picks.map(p=>p?.id||null),oldIds);for(let i=0;i<11;i++)if(reformed.picks[i])assert.equal(reformed.picks[i].rating,playerAbility(chem.states[0],chem.states[0].picks[i],positions('3-3-4')[i]));
 
  for(const [poolId,combination] of [['ucl-barcelona-2015',[[2,'lionel-messi'],[0,'neymar'],[1,'luis-suarez']]],['ucl-milan-1989',[[3,'ruud-gullit'],[1,'marco-van-basten'],[4,'frank-rijkaard']]]]){
   const r=await room('ucl'),source=pools.find(p=>p.id===poolId);for(const [slot,id] of combination){const person=source.players.find(p=>p.identity===id);await write(r,0,pickPlayer({...r.states[0],pool:source.id,drawPhase:'ready'},person.id,slot));}
@@ -74,6 +74,7 @@ try{
   const read=await rpc([a,b][i],'fc_read_v3',[final.code]),blocked=read.locks.filter(l=>!l.mine).map(l=>l.player_id);
   const ready=spinDraft(final.states[i],()=>0,blocked),person=pools.find(p=>p.id===ready.pool).players.find(p=>!blocked.includes(p.id)&&!ready.picks.some(x=>x?.identity===p.identity));
   await write(final,i,pickPlayer(ready,person.id,slot,Math.random,blocked));
+  if(slot===15&&i===0){await write(final,0,{...final.states[0],formation:'4-3-3-attacking'});await write(final,0,{...final.states[0],formation:'3-3-4'});}
  }
  const x=await rpc(a,'fc_read_v3',[final.code]),y=await rpc(b,'fc_read_v3',[final.code]);assert.ok(x.result);assert.deepEqual(x.result,y.result);const attacking=x.members.find(m=>m.state.lineupFormation==='4-3-3-attacking').state;assert.equal(attacking.lineupFormation,'4-3-3-attacking');for(let i=0;i<11;i++)assert.equal(attacking.picks[i].rating,playerAbility(final.states[1],final.states[1].picks[i],positions('4-3-3-attacking')[i]));
  const newShape=x.members.find(m=>m.state.lineupFormation==='3-3-4').state;for(let i=0;i<11;i++){assert.equal(newShape.picks[i].rating,playerAbility(final.states[0],final.states[0].picks[i],positions('3-3-4')[i]));}

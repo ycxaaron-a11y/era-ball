@@ -194,9 +194,8 @@ export function season(s, random = Math.random) {
   });
 }
 
-// A confirmed pick is permanent until a new draft; formations lock with the first pick.
+// Confirmed players keep their slot; formation changes preserve those slot assignments.
 export function assertDraftProgress(previous,next){
- if(previous.picks.some(Boolean)&&previous.formation!==next.formation)throw Error('首位球员入队后阵型已锁定，请重开后更换。');
  if(previous.picks.some((p,i)=>p&&p.id!==next.picks[i]?.id))throw Error('球员入队后位置已锁定，不能换位、替换或移出阵容。');
 }
 
