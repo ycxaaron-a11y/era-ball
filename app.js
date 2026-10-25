@@ -9,7 +9,7 @@ import { positionName, positionList, heightLabel } from './display.js';
 import { candidateFor, selectCandidate, placeCandidate } from './placement.js';
 import { cloudConfig } from './config.js';
 import { pools, poolById, eras, eraById, positions, formations, formationChoices, formationName, fit, strength,
-  playerAbility, playerTier, validateRoomPool, availablePools, spinDraft, formationLayout, tierClass, eraAdjustment, positionPenalty, freshState, hydrateState, startDraft, reroll, networkState } from './data.js';
+  awakenedSlots, assertDraftProgress, playerAbility, playerTier, validateRoomPool, availablePools, spinDraft, formationLayout, tierClass, eraAdjustment, positionPenalty, freshState, hydrateState, startDraft, reroll, networkState } from './data.js';
 import { request, validatePublicConfig } from './multiplayer.js';
 
 const $ = id => document.getElementById(id);
@@ -32,7 +32,8 @@ function startLandingImpact(index) {
 let config = { ...cloudConfig, ...read('era-fc-cloud', {}) };
 let authSession = read('era-fc-auth-v2', null, sessionStorage);
 const esc = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const uiBusy = () => busy || committing || spinning;
+let awakeningActive=false;
+const uiBusy = () => busy || committing || spinning || awakeningActive;
 const onlineLocked = () => Boolean(room && s.picks.every(Boolean));
 const slots = () => [...positions(s.formation), ...Array(5).fill('SUB')];
 function modal(html) { $('modal-body').innerHTML = html; if (!$('modal').open) $('modal').showModal(); }
@@ -43,7 +44,7 @@ function adjustments(p, pos, state = s) {
   const a = eraAdjustment(p, state.targetEra), penalty = positionPenalty(p, pos);
   return `基础 ${p.rating} · 羁绊 +${chemistryBonus(state.picks,p)} · 位置 −${penalty} · 年代 −${a.penalty} = ${playerAbility(state,p,pos)}；${a.reason}`;
 }
-function energy(p) { return splusLightning(p?.tier)+darkMatter(p?.rating); }
+function energy(p) { return hasDarkMatter(p?.rating)?darkMatter(p.rating):splusLightning(p?.tier); }
 function slot(p, i, pos, xy) {
   const preview = !p && placement?.slot === i ? candidateFor(s, placement) : null;
   const shown = p || preview;
@@ -62,7 +63,7 @@ function render() {
   $('squad-name').textContent=s.teamName||'我的球队';
   renderInitialProfile();
   $('formation').innerHTML = formationChoices.map(f=>`<option value="${f}">${formationName(f)}</option>`).join('') + (formationChoices.includes(s.formation)?'':`<option value="${s.formation}" hidden>旧存档阵型（可重新选择）</option>`);
-  $('formation').value = s.formation; $('formation').disabled = onlineLocked() || uiBusy();
+  $('formation').value = s.formation; $('formation').disabled = onlineLocked() || uiBusy() || s.picks.some(Boolean);
   for (const id of ['wc','ucl','euro','copa','setup','reset','restart','profile','online','era-open']) if($(id)) $(id).disabled=uiBusy();
   renderChemistry();
   $('pitch').classList.toggle('five-lines', formations[s.formation].length === 5);
@@ -176,12 +177,9 @@ function playerDetail(i) {
   const p = s.picks[i], pos = slots()[i];
   modal(`<h2>${esc(p.name)} <span class="tier">${playerTier(s,p)}${playerTier(s,p)!==p.tier?`（${p.tier} →）`:''}</span></h2><p>${esc(p.team)} · ${p.era} · ${heightLabel(p)} · 完全适应位置 ${positionList(p.positions)}</p>
     <div class="rating-details">${esc(adjustments(p, pos))}</div><p class="profile-note">${esc(eraAdjustment(p, s.targetEra).reason)}。跨年代模拟属于游戏设定，并非对球员真实表现的预测。</p>
-    ${onlineLocked() ? '<p>阵容已提交赛季，本局无法再调整。</p>' : `<label for="move-slot">调整位置（有球员时交换）</label><select id="move-slot">${slots().map((v, n) => `<option value="${n}" ${n === i ? 'selected' : ''}>${n + 1}. ${positionName(v)} ${s.picks[n] ? esc(s.picks[n].name) : '空位'}</option>`).join('')}</select><div class="setup-actions"><button id="move-player" class="primary">确认调整</button><button id="remove-player">移出阵容</button></div>`}`);
-  if (!onlineLocked()) {
-    $('move-player').onclick = () => { const to=+$('move-slot').value, next={...s,picks:[...s.picks]}; [next.picks[i],next.picks[to]]=[next.picks[to],next.picks[i]]; $('modal').close(); commitRoster(next); };
-    $('remove-player').onclick = () => { const next={...s,picks:[...s.picks]}; next.picks[i]=null; if(next.drawPhase==='complete')next.drawPhase='awaiting'; $('modal').close(); commitRoster(next); };
-  }
+    <p>球员及位置已锁定，本局不能换位、替换或移出。可重开开始新一局。</p>`);
 }
+
 function reset(mode = s.mode) {
   if(uiBusy()||finalBusy||finalFinishing)return notify('当前操作正在确认，请稍后再重开。');
   if((s.started||room)&&!confirm('重开会清空本局阵容并离开当前房间，球队名会保留。继续吗？'))return;
@@ -213,14 +211,14 @@ $('close').onclick = () => $('modal').close();
 $('setup').onclick = setupUI;
 $('spin').onclick = () => beginSpin(false);
 $('roll').onclick = () => beginSpin(true);
-$('formation').onchange = e => { if (!onlineLocked()&&!uiBusy()) commitRoster({...s,formation:e.target.value}); };
+$('formation').onchange = e => { if (!onlineLocked()&&!uiBusy()&&!s.picks.some(Boolean)) commitRoster({...s,formation:e.target.value}); };
 $('wc').onclick = () => s.mode !== 'world_cup' && reset('world_cup');
 $('ucl').onclick = () => s.mode !== 'ucl' && reset('ucl');
 $('euro').onclick=()=>s.mode!=='euro'&&reset('euro');$('copa').onclick=()=>s.mode!=='copa_america'&&reset('copa_america');
 $('reset').onclick = () => reset();
 $('rules').onclick = () => modal(`<h2>更多年代，更多选择</h2><p>收录 ${pools.length} 支年代球队、${pools.reduce((n, p) => n + p.players.length, 0)} 条球员年代记录，覆盖 12 个年代区间。球员库为精选真实阵容，非完整官方注册名单；评分参考该赛季表现，属于人工估值。</p>
   <div class="tier-legend">${[['S+', '105+'], ['S', '98–104'], ['A', '90–97'], ['B', '82–89'], ['C', '75–81'], ['D', '1–74']].map(([t, r]) => `<span class="${tierClass(t)}">${t} ${r}</span>`).join('')}</div><p>评级按当届或当季表现估值，不再设每支来源球队最多三名 S／S+ 的限制；历史强队可有更多高评级，但不同年代版本分别评分。候选卡显示姓名、身高、位置、原始评级和初始能力；入队后按位置、年代和羁绊计算实际能力。先点球员，再点空位查看半透明试位与实际能力，第二次点同一空位才正式签下。试位不会消耗选人或重转次数，也不会提前提交联机。每轮先按 Spin，停下后才显示候选；确认入队后等待下一次手动 Spin。</p>
-  <p>球员的多个首选位置全部不扣分；邻近位置扣 4 分，其他外场位置扣 12 分，门将错位扣 45 分。年代调整另外扣 0–3 分。点击阵中球员查看计算、换位或移除。</p>
+  <p>球员的多个首选位置全部不扣分；邻近位置扣 4 分，其他外场位置扣 12 分，门将错位扣 45 分。年代调整另外扣 0–3 分。点击阵中球员查看能力计算；确认入队后位置锁定，首位球员入队后阵型锁定。</p>
   <p>赛前确定征战年代及排除年代，开局后锁定。赛季采用自定义 16 队杯赛：四组各四队，小组赛三轮后前二晋级，随后四分之一决赛、半决赛、决赛，均单场决胜。替补暂不自动换人。两人联机分别位于 A、C 组不同半区；三、四人各占一个小组，晋级后可能在淘汰赛交手。全体玩家共享赛季种子与轮次。</p>
   <p>角色适配参考公开历史比赛位置资料；跨年代结果无法客观测量。<a href="docs/era-research.md" target="_blank" rel="noopener">研究来源与建模说明 ↗</a></p>`);
 let tournament=null, seasonCursor=0, seasonBusy=false, seasonRoom=null, seasonPage=null, seasonReveal=null, autoRunning=false, autoToken=0, seasonFailure='';
@@ -367,7 +365,7 @@ function roomMembers(){
 }
 async function checkConnection(){
  if(busy)return;busy=true;for(const id of ['check-connection','create','join'])if($(id))$(id).disabled=true;
- try{config=validatePublicConfig({url:$('url').value,key:$('key').value});localStorage.setItem('era-fc-cloud',JSON.stringify(config));status('正在检查匿名登录…');await auth();status('匿名登录正常，正在检查联机数据库…');const capability=await rpc('fc_protocol_v3',{});if(Number(capability.room_version||0)<10||Number(capability.chemistry_version||0)<4||Number(capability.catalog_count)<pools.reduce((n,p)=>n+p.players.length,0))throw Error('数据库升级尚未完成，请运行最新完整 SQL。');status('连接检查通过，可以创建房间或加入朋友的房间。');}
+ try{config=validatePublicConfig({url:$('url').value,key:$('key').value});localStorage.setItem('era-fc-cloud',JSON.stringify(config));status('正在检查匿名登录…');await auth();status('匿名登录正常，正在检查联机数据库…');const capability=await rpc('fc_protocol_v3',{});if(Number(capability.room_version||0)<11||Number(capability.chemistry_version||0)<4||Number(capability.catalog_count)<pools.reduce((n,p)=>n+p.players.length,0))throw Error('数据库升级尚未完成，请运行最新完整 SQL。');status('连接检查通过，可以创建房间或加入朋友的房间。');}
  catch(e){status(readableError(e));if(e.code==='PGRST202'||e.message?.includes('数据库升级'))showUpgradeHelp();}
  finally{busy=false;for(const id of ['check-connection','create','join'])if($(id))$(id).disabled=false;}
 }
@@ -395,6 +393,7 @@ function readableError(e) {
   if(/room not found/i.test(e.message||''))return '找不到这个房间，请核对 8 位房间码。';
   if(e.message?.includes('FC_INVALID_TEAM_NAME'))return '球队名需为 1–20 个字符。';
   if(e.message?.includes('FC_INSUFFICIENT_POOL'))return '保留的年代名单不足以供所有人选满阵容，请重开并少锁几个年代。';
+  if(e.message?.includes('FC_ROSTER_LOCKED'))return '球员及位置已锁定，不能换位、替换或移出；首位球员入队后阵型也会锁定。';
   if(e.message?.includes('FC_NAME_LOCKED'))return '本局联机队名已锁定，请新开一局后改名。';
   if(e.message?.includes('FC_PLAYER_LOCKED'))return '这个球队年代版本已被对手抢先锁定，请选择其他球员。';
   if(e.message?.includes('FC_RULES_MISMATCH'))return '房间使用了旧版规则，请双方刷新并创建新房间。';
@@ -409,14 +408,29 @@ async function submitSnapshot(next, requestId=crypto.randomUUID()) {
   serverRevision=result.revision;
   return result;
 }
+function playAwakening(indices){
+ if(!indices.length||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+ awakeningActive=true;render();
+ const targets=indices.map(i=>document.querySelector(`[data-slot="${i}"]`)).filter(Boolean);
+ // A newly selected bench player may be outside the viewport on a phone.
+ const visible=targets.filter(el=>{const r=el.getBoundingClientRect();return r.bottom>0&&r.top<innerHeight;});
+ if(!visible.length&&targets[0])targets[0].scrollIntoView({block:'center',behavior:'instant'});
+ const rects=targets.map(el=>{const r=el.getBoundingClientRect();return {x:r.left-8,y:r.top-8,w:r.width+16,h:r.height+16};});
+ const overlay=document.createElement('div');overlay.className='awakening-overlay';overlay.setAttribute('aria-hidden','true');
+ overlay.innerHTML=`<svg class="awakening-shade" width="100%" height="100%"><defs><mask id="awakening-mask"><rect width="100%" height="100%" fill="white"/>${rects.map(r=>`<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="12" fill="black"/>`).join('')}</mask></defs><rect width="100%" height="100%" fill="#000" mask="url(#awakening-mask)"/></svg>${rects.map(r=>`<span class="awakening-burst" style="left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px"></span>`).join('')}`;
+ document.body.append(overlay);targets.forEach(el=>el.classList.add('awakening-card'));
+ setTimeout(()=>{overlay.remove();targets.forEach(el=>el.classList.remove('awakening-card'));awakeningActive=false;render();},900);
+}
 async function commitRoster(next, impactIndex = null) {
   if(uiBusy())return;
-  if(!room){s=next;placement=null;if(impactIndex!==null&&playerAbility(s,s.picks[impactIndex],slots()[impactIndex])>=105)startLandingImpact(impactIndex);save();return;}
+  try{assertDraftProgress(s,next);}catch(e){notify(e.message);return;}
+  const awakenings=awakenedSlots(s,next,impactIndex);
+  if(!room){s=next;placement=null;if(impactIndex!==null&&playerAbility(s,s.picks[impactIndex],slots()[impactIndex])>=105)startLandingImpact(impactIndex);save();playAwakening(awakenings);return;}
   committing=true;render();const generation=roomGeneration;
   try {
     await submitSnapshot(next);
     if(generation!==roomGeneration)return;
-    s=next;placement=null;if(impactIndex!==null&&playerAbility(s,s.picks[impactIndex],slots()[impactIndex])>=105)startLandingImpact(impactIndex);save();
+    s=next;placement=null;if(impactIndex!==null&&playerAbility(s,s.picks[impactIndex],slots()[impactIndex])>=105)startLandingImpact(impactIndex);save();playAwakening(awakenings);
   } catch(e) {
     placement=null;
     if(e.message?.includes('FC_PLAYER_LOCKED')&&e.details)lockedIds.add(e.details);
@@ -436,7 +450,7 @@ async function connect(create) {
   try{
     config=validatePublicConfig({url:$('url').value,key:$('key').value});localStorage.setItem('era-fc-cloud',JSON.stringify(config));
     $('create').disabled=true;$('join').disabled=true;status('正在连接…');
-    try{const capability=await rpc('fc_protocol_v3',{});if(Number(capability.room_version||0)<10||Number(capability.rating_version||0)<8||Number(capability.chemistry_version||0)<4||Number(capability.catalog_count)<pools.reduce((n,p)=>n+p.players.length,0))throw Error('新阵型与羁绊规则需要执行一次数据库升级 SQL。');}catch(e){if(e.code==='PGRST202'||e.status===404)throw Error('新联机规则需要执行一次数据库升级 SQL。');throw e;}
+    try{const capability=await rpc('fc_protocol_v3',{});if(Number(capability.room_version||0)<11||Number(capability.rating_version||0)<8||Number(capability.chemistry_version||0)<4||Number(capability.catalog_count)<pools.reduce((n,p)=>n+p.players.length,0))throw Error('新阵型与羁绊规则需要执行一次数据库升级 SQL。');}catch(e){if(e.code==='PGRST202'||e.status===404)throw Error('新联机规则需要执行一次数据库升级 SQL。');throw e;}
     preferredCapacity=Number($('capacity')?.value||preferredCapacity);
     if(create)validateRoomPool(s,preferredCapacity);
     const d=create?await rpc('fc_create_room_v9',{p_mode:s.mode,p_capacity:preferredCapacity}):await rpc('fc_connect_v3',{p_code:code,p_mode:s.mode});
@@ -457,9 +471,9 @@ async function connect(create) {
   finally{busy=false;render();}
 }
 async function poll() {
-  if(polling||!room)return;polling=true;const generation=roomGeneration;
+  if(polling||!room||awakeningActive)return;polling=true;const generation=roomGeneration;
   try{
-    const d=await rpc('fc_read_v3',{p_code:room});if(generation!==roomGeneration)return;remote=d;
+    const d=await rpc('fc_read_v3',{p_code:room});if(generation!==roomGeneration||awakeningActive)return;remote=d;
     const previousLocks=[...lockedIds].sort().join('|');
     lockedIds=new Set(d.locks.filter(l=>!l.mine).map(l=>l.player_id));
     const locksChanged=previousLocks!==[...lockedIds].sort().join('|');

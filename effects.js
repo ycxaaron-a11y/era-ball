@@ -16,5 +16,5 @@ export function placementImpact() {
 export const hasDarkMatter = rating => rating >= 110;
 export function darkMatter(rating){
  if(!hasDarkMatter(rating))return '';
- return `<span class="dark-matter" aria-hidden="true">${Array.from({length:14},(_,i)=>{const angle=i*Math.PI*2/14;return `<i style="--particle-x:${50+49*Math.cos(angle)}%;--particle-y:${50+49*Math.sin(angle)}%;--particle-delay:${-(i*.137)}s;--particle-size:${i%3===0?3:2}px"></i>`;}).join('')}<span class="matter-orbit"></span></span>`;
+ return `<span class="dark-matter" aria-hidden="true">${Array.from({length:14},(_,i)=>{const angle=i*Math.PI*2/14;return `<i style="--particle-x:${50+49*Math.cos(angle)}%;--particle-y:${50+49*Math.sin(angle)}%;--particle-delay:${-(i*.137)}s;--particle-size:${i%3===0?3:2}px"></i>`;}).join('')}<span class="matter-orbit"></span><svg class="matter-fractures" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><g class="fracture fracture-a"><path d="M-2 22 13 17 9 29 23 24 17 39 30 32M72 -2 66 14 77 10 69 26 83 21M101 69 86 76 93 63 78 70 84 54"/></g><g class="fracture fracture-b"><path d="M18 102 27 86 17 91 31 71 23 76M103 8 85 19 92 21 76 39 79 27M-2 65 15 59 9 70 24 62"/></g></svg></span>`;
 }

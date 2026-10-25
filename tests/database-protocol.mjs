@@ -36,9 +36,9 @@ try{
  await assert.rejects(rpc(a,'fc_connect',[r.code,'world_cup']),/FC_RULES_MISMATCH/);
  await assert.rejects(rpc(a,'fc_submit',[r.code,networkState(r.states[0])]),/FC_RULES_V3_REQUIRED/);
  await assert.rejects(rpc(a,'fc_submit_v3',[r.code,networkState(r.states[0]),0,randomUUID()]),/FC_STALE_STATE/);
- const removed={...r.states[0],picks:Array(16).fill(null)};await write(r,0,removed);
- assert.ok(!(await rpc(a,'fc_read_v3',[r.code])).locks.some(l=>l.player_id===pele.id));
- console.log('PASS SQL: different-era same person permitted, removal releases lock, nonmembers/stale writes/old-client bypass rejected');
+ const removed={...r.states[0],picks:Array(16).fill(null)};await assert.rejects(write(r,0,removed),/FC_ROSTER_LOCKED/);
+ assert.ok((await rpc(a,'fc_read_v3',[r.code])).locks.some(l=>l.player_id===pele.id));
+ console.log('PASS SQL: different-era same person permitted, removal rejected and lock retained, nonmembers/stale writes/old-client bypass rejected');
  const club=await room('ucl');
  for(const [i,id] of ['ucl-ajax-1995','ucl-milan-2007'].entries()){
   const p=pools.find(p=>p.id===id),person=p.players.find(x=>x.identity==='clarence-seedorf');
@@ -55,12 +55,14 @@ try{
  const stored=(await rpc(a,'fc_read_v3',[chem.code])).members.find(m=>m.is_self).state;
  for(let i=0;i<11;i++)if(chem.states[0].picks[i])assert.equal(stored.picks[i].rating,playerAbility(chem.states[0],chem.states[0].picks[i],positions(chem.states[0].formation)[i]));
  assert.equal(stored.picks[2].rating,100);assert.equal((await rpc(a,'fc_protocol_v3',[])).chemistry_version,4);assert.equal((await rpc(a,'fc_protocol_v3',[])).rating_version,8);
- const benched={...chem.states[0],picks:[...chem.states[0].picks]};benched.picks[11]=benched.picks[1];benched.picks[1]=null;await write(chem,0,benched);const withoutTrio=(await rpc(a,'fc_read_v3',[chem.code])).members.find(m=>m.is_self).state;assert.equal(withoutTrio.picks[2].rating,100);assert.equal(withoutTrio.picks[11].rating,102);const removedPartner={...benched,picks:[...benched.picks]};removedPartner.picks[11]=null;await write(chem,0,removedPartner);assert.equal((await rpc(a,'fc_read_v3',[chem.code])).members.find(m=>m.is_self).state.picks[2].rating,97);
+ const benched={...chem.states[0],picks:[...chem.states[0].picks]};benched.picks[11]=benched.picks[1];benched.picks[1]=null;await assert.rejects(write(chem,0,benched),/FC_ROSTER_LOCKED/);
+ const swapped={...chem.states[0],picks:[...chem.states[0].picks]};[swapped.picks[0],swapped.picks[2]]=[swapped.picks[2],swapped.picks[0]];await assert.rejects(write(chem,0,swapped),/FC_ROSTER_LOCKED/);await assert.rejects(write(chem,0,{...chem.states[0],formation:'3-3-4'}),/FC_ROSTER_LOCKED/);
+
  for(const [poolId,combination] of [['ucl-barcelona-2015',[[2,'lionel-messi'],[0,'neymar'],[1,'luis-suarez']]],['ucl-milan-1989',[[3,'ruud-gullit'],[1,'marco-van-basten'],[4,'frank-rijkaard']]]]){
   const r=await room('ucl'),source=pools.find(p=>p.id===poolId);for(const [slot,id] of combination){const person=source.players.find(p=>p.identity===id);await write(r,0,pickPlayer({...r.states[0],pool:source.id,drawPhase:'ready'},person.id,slot));}
   const canonical=(await rpc(a,'fc_read_v3',[r.code])).members.find(m=>m.is_self).state;for(const [slot] of combination)assert.equal(canonical.picks[slot].rating,playerAbility(r.states[0],r.states[0].picks[slot],positions(r.states[0].formation)[slot]));if(poolId==='ucl-barcelona-2015')assert.equal(canonical.picks[2].rating,115);
-  const reserve={...r.states[0],picks:[...r.states[0].picks]};for(const [i,[slot]] of combination.entries()){reserve.picks[11+i]=reserve.picks[slot];reserve.picks[slot]=null;}await write(r,0,reserve);const benchState=(await rpc(a,'fc_read_v3',[r.code])).members.find(m=>m.is_self).state;for(let i=11;i<14;i++)assert.equal(benchState.picks[i].rating,playerAbility(reserve,reserve.picks[i],'SUB'));
-  const wrong={...reserve,picks:[...reserve.picks]};wrong.picks[10]=wrong.picks[11];wrong.picks[11]=null;await write(r,0,wrong);const wrongState=(await rpc(a,'fc_read_v3',[r.code])).members.find(m=>m.is_self).state;assert.equal(wrongState.picks[10].rating,playerAbility(wrong,wrong.picks[10],'GK'));for(let i=12;i<14;i++)assert.equal(wrongState.picks[i].rating,playerAbility(wrong,wrong.picks[i],'SUB'));
+  const benchRoom=await room('ucl');for(const [i,[,id]] of combination.entries()){const person=source.players.find(p=>p.identity===id);await write(benchRoom,0,pickPlayer({...benchRoom.states[0],pool:source.id,drawPhase:'ready'},person.id,11+i));}const benchState=(await rpc(a,'fc_read_v3',[benchRoom.code])).members.find(m=>m.is_self).state;for(let i=11;i<14;i++)assert.equal(benchState.picks[i].rating,playerAbility(benchRoom.states[0],benchRoom.states[0].picks[i],'SUB'));
+
 
  }
  const crossClub=await room('ucl');for(const [poolId,identity,slot] of [['ucl-psg-2020','neymar',11],['ucl-barcelona-2015','lionel-messi',10],['ucl-barcelona-2015','luis-suarez',12]]){const source=pools.find(p=>p.id===poolId),person=source.players.find(p=>p.identity===identity);await write(crossClub,0,pickPlayer({...crossClub.states[0],pool:source.id,drawPhase:'ready'},person.id,slot));}const crossStored=(await rpc(a,'fc_read_v3',[crossClub.code])).members.find(m=>m.is_self).state;for(const [slot,pos] of [[11,'SUB'],[10,'GK'],[12,'SUB']])assert.equal(crossStored.picks[slot].rating,playerAbility(crossClub.states[0],crossClub.states[0].picks[slot],pos));assert.equal(crossStored.picks[11].rating,crossStored.picks[11].baseRating+5);

@@ -2305,7 +2305,7 @@ insert into public.fc_chemistry_pairs(id,left_identity,right_identity,bonus) val
 insert into public.fc_chemistry_trios(id,identities,bonus_mode,bonus) values ('bbc',ARRAY['cristiano-ronaldo','gareth-bale','karim-benzema'],'flat',5),('msn',ARRAY['lionel-messi','neymar','luis-suarez'],'flat',5),('dutch-three',ARRAY['ruud-gullit','marco-van-basten','frank-rijkaard'],'flat',5) on conflict(id) do update set identities=excluded.identities,bonus_mode=excluded.bonus_mode,bonus=excluded.bonus;
 
 create or replace function public.fc_protocol_v3() returns jsonb language sql security definer set search_path=public,pg_temp as $$
- select jsonb_build_object('version',3,'chemistry_version',4,'rating_version',8,'room_version',10,'catalog_count',(select count(*) from fc_player_catalog));
+ select jsonb_build_object('version',3,'chemistry_version',4,'rating_version',8,'room_version',11,'catalog_count',(select count(*) from fc_player_catalog));
 $$;
 create or replace function public._fc_connect_rules(p_code text,p_mode text,p_rules integer)
 returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$
@@ -2443,6 +2443,11 @@ begin
  if auth.uid()<>r.owner then
   select state into host_state from fc_members where room_code=p_code and user_id=r.owner;
   if host_state is null or host_state->'targetEra' is distinct from p_state->'targetEra' or host_state->'excludedEras' is distinct from p_state->'excludedEras' then raise exception 'FC_SETTINGS_LOCKED'; end if;
+ end if;
+ if m.state is not null and exists(select 1 from jsonb_array_elements(m.state->'picks') old where old<>'null'::jsonb) then
+  if coalesce(m.state->>'lineupFormation',m.state->>'formation') is distinct from actual_formation
+    or exists(select 1 from jsonb_array_elements(m.state->'picks') with ordinality as prior(player,idx)
+      where player<>'null'::jsonb and player->>'id' is distinct from p_state->'picks'->(idx::integer-1)->>'id') then raise exception 'FC_ROSTER_LOCKED'; end if;
  end if;
  select count(*) into new_claims from jsonb_array_elements(p_state->'picks') p where p<>'null'::jsonb
   and not exists(select 1 from fc_player_locks l where l.room_code=p_code and l.player_key=p->>'id' and l.user_id=auth.uid());
