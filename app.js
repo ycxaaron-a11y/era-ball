@@ -4,7 +4,7 @@ import {updateFinalLive} from './final-view.js';
 import {createTournament,draftTeam} from './tournament.js';
 import {renderSeason,closeSeason,seasonVisible} from './season-view.js';
 import { activeChemistry, activeTrios, chemistryBonus, chemistryPairs, chemistryTrios } from './chemistry.js';
-import { playerSilhouette, splusLightning, placementImpact, darkMatter } from './effects.js';
+import { playerSilhouette, splusLightning, placementImpact, darkMatter, hasDarkMatter } from './effects.js';
 import { positionName, positionList, heightLabel } from './display.js';
 import { candidateFor, selectCandidate, placeCandidate } from './placement.js';
 import { cloudConfig } from './config.js';
@@ -53,7 +53,7 @@ function slot(p, i, pos, xy) {
   const originalBadge=shown&&playerAbility(viewState,shown,pos)!==shown.rating?`<span class="was-tier" title="初始评级 ${shown.tier} · 初始能力 ${shown.rating}" aria-label="初始评级 ${shown.tier}，初始能力 ${shown.rating}">was ${shown.tier}</span>`:'';
   const impact = p && landingImpact?.index===i && landingImpact.until>Date.now();
   const title = shown ? `${shown.name} · ${positionList(shown.positions)} · ${adjustments(shown, pos, viewState)}${preview ? '；再点同一位置确认' : ''}` : `空位：${positionName(pos)}`;
-  return `<button class="slot ${shown ? tierClass(grade) : ''} ${actual>101?'mythic':''} ${preview ? 'slot-preview selected' : ''} ${placement && !p ? 'can-place' : ''} ${impact?'is-impact':''}" data-slot="${i}" ${uiBusy() ? 'disabled' : ''} ${xy ? `style="left:${xy[0]}%;top:${xy[1]}%"` : ''} title="${esc(title)}" aria-label="${esc(title)}">
+  return `<button class="slot ${shown ? tierClass(grade) : ''} ${hasDarkMatter(actual)?'mythic':''} ${preview ? 'slot-preview selected' : ''} ${placement && !p ? 'can-place' : ''} ${impact?'is-impact':''}" data-slot="${i}" ${uiBusy() ? 'disabled' : ''} ${xy ? `style="left:${xy[0]}%;top:${xy[1]}%"` : ''} title="${esc(title)}" aria-label="${esc(title)}">
     ${shown ? `${energy({tier:grade,rating:actual})}${originalBadge}<em>${playerAbility(viewState,shown,pos)}</em><span class="${preview ? 'preview-player' : 'placed-player'}"><b>${esc(shown.name)}</b><small class="player-height">${heightLabel(shown)}</small><small class="slot-position">${positionName(pos)}</small></span>${preview ? `<small class="confirm-label">${committing?'锁定中…':'再点确认'}</small>` : ''}` : `<span class="plus">＋</span><small>${positionName(pos)}</small>`}${impact?placementImpact():''}</button>`;
 }
 function render() {
@@ -103,7 +103,7 @@ function render() {
   document.querySelectorAll('[data-filter]').forEach(b=>b.disabled=!visible||uiBusy());
   $('players').innerHTML = visible ? pool.players.filter(p => filter === '全部' || p.positions.some(v => groups[filter].includes(v))).sort((a, b) => b.rating - a.rating).map(p => {
     const taken = s.picks.some(x => x?.identity === p.identity), blocked = lockedIds.has(p.id);
-    return `<button class="player-card ${tierClass(p.tier)} ${p.rating>101?'mythic':''} ${placement?.playerId === p.id ? 'is-chosen' : ''}" data-player="${esc(p.id)}" aria-pressed="${placement?.playerId === p.id}" ${taken || blocked || uiBusy() || s.picks.every(Boolean) ? 'disabled' : ''} title="${esc(`${p.name} · ${heightLabel(p)} · ${positionList(p.positions)}`)}">
+    return `<button class="player-card ${tierClass(p.tier)} ${hasDarkMatter(p.rating)?'mythic':''} ${placement?.playerId === p.id ? 'is-chosen' : ''}" data-player="${esc(p.id)}" aria-pressed="${placement?.playerId === p.id}" ${taken || blocked || uiBusy() || s.picks.every(Boolean) ? 'disabled' : ''} title="${esc(`${p.name} · ${heightLabel(p)} · ${positionList(p.positions)}`)}">
       ${energy(p)}<span class="avatar" aria-hidden="true">${playerSilhouette()}</span><span class="player-info"><span class="name">${esc(p.name)}</span><small class="player-height">${heightLabel(p)}</small><small class="player-positions">${positionList(p.positions)}</small><small class="player-base-rating">初始能力 <b>${p.rating}</b></small>${blocked ? '<small class="opponent-lock">🔒 对手已锁定此版本</small>' : taken ? '<small>已入队</small>' : ''}</span><span class="tier">${p.tier}</span></button>`;
   }).join('') : `<div class="spin-placeholder"><b>${spinning ? '球队与年代抽选中…' : s.picks.every(Boolean) ? '阵容已完成' : s.started ? '等待你按下 SPIN' : '先选择征战年代'}</b><p>${spinning ? '停下后才会揭晓本轮球员。' : '每次手动抽取一组，选人后不会自动跳到下一组。'}</p></div>`;
   document.querySelectorAll('[data-player]').forEach(b => b.onclick = () => {
@@ -411,12 +411,12 @@ async function submitSnapshot(next, requestId=crypto.randomUUID()) {
 }
 async function commitRoster(next, impactIndex = null) {
   if(uiBusy())return;
-  if(!room){s=next;placement=null;if(impactIndex!==null&&playerAbility(s,s.picks[impactIndex],slots()[impactIndex])>101)startLandingImpact(impactIndex);save();return;}
+  if(!room){s=next;placement=null;if(impactIndex!==null&&playerAbility(s,s.picks[impactIndex],slots()[impactIndex])>=105)startLandingImpact(impactIndex);save();return;}
   committing=true;render();const generation=roomGeneration;
   try {
     await submitSnapshot(next);
     if(generation!==roomGeneration)return;
-    s=next;placement=null;if(impactIndex!==null&&playerAbility(s,s.picks[impactIndex],slots()[impactIndex])>101)startLandingImpact(impactIndex);save();
+    s=next;placement=null;if(impactIndex!==null&&playerAbility(s,s.picks[impactIndex],slots()[impactIndex])>=105)startLandingImpact(impactIndex);save();
   } catch(e) {
     placement=null;
     if(e.message?.includes('FC_PLAYER_LOCKED')&&e.details)lockedIds.add(e.details);

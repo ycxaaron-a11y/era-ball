@@ -167,7 +167,7 @@ dialog label { line-height: 1.7; }
 .slot-preview em { position: relative; z-index: 3; color: #f3ffd3 !important; text-shadow: 0 2px 6px #10230b; font-size: 22px; }
 .slot-preview .confirm-label { color: #f0ffcd; font-weight: 700; font-size: 9px; margin-top: 3px; }
 /* S+ lightning is drawn as branching SVG bolts, with brief local recoil. */
-.player-card.tier-sp, .slot.tier-sp { border: 2px solid #dfabff; background-color: #35203c; box-shadow: inset 0 0 22px #be43ff40, 0 0 12px #bd46ff9c, 0 0 23px #a531ff55; animation: splus-aura 1.8s ease-in-out infinite, splus-recoil 1.8s linear infinite; }
+.player-card.tier-sp, .slot.tier-sp { border: 2px solid #dfabff; background-color: #35203c; box-shadow: inset 0 0 22px #be43ff40, 0 0 12px #bd46ff9c, 0 0 23px #a531ff55; animation: splus-aura 1.8s ease-in-out infinite; }
 .player-card.tier-sp::before, .player-card.tier-sp::after, .slot.tier-sp::before, .slot.tier-sp::after { content: none; }
 .splus-thunder { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; z-index: 2; pointer-events: none; fill: none; }
 .splus-thunder path { vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: miter; }

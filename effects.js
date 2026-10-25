@@ -13,7 +13,8 @@ export function placementImpact() {
   return `<span class="placement-impact" aria-hidden="true"><span class="impact-ring"></span>${[-1,-.65,0,.65,1].map((x,i)=>`<span class="impact-dust" style="--dust-x:${x*70}px;--dust-y:${26+Math.abs(x)*12}px;--dust-delay:${i*.018}s"></span>`).join('')}</span>`;
 }
 
+export const hasDarkMatter = rating => rating >= 110;
 export function darkMatter(rating){
- if(!(rating>101))return '';
+ if(!hasDarkMatter(rating))return '';
  return `<span class="dark-matter" aria-hidden="true">${Array.from({length:14},(_,i)=>{const angle=i*Math.PI*2/14;return `<i style="--particle-x:${50+49*Math.cos(angle)}%;--particle-y:${50+49*Math.sin(angle)}%;--particle-delay:${-(i*.137)}s;--particle-size:${i%3===0?3:2}px"></i>`;}).join('')}<span class="matter-orbit"></span></span>`;
 }
