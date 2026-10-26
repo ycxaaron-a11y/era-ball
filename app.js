@@ -186,7 +186,6 @@ function playerDetail(i) {
 
 function reset(mode = s.mode, afterReset=null) {
   if(uiBusy()||finalBusy||finalFinishing)return notify('当前操作正在确认，请稍后再重开。');
-  if((s.started||room)&&!confirm('重开会清空本局阵容并离开当前房间，球队名会保留。继续吗？'))return;
   stopAuto();clearInterval(finalTimer);clearTimeout(finalFinishTimer);finalTimer=null;finalFinishTimer=null;finalSession=null;
   if(room)disconnect();else{roomGeneration++;closeSeason();}
   tournament=null;seasonCursor=0;seasonPage=null;seasonBusy=false;seasonFailure='';localStorage.removeItem(localSeasonKey);
@@ -447,7 +446,6 @@ async function connect(create) {
   if(create&&!s.started){preferredCapacity=Number($('capacity')?.value||preferredCapacity);setupUI(()=>{onlineUI();connect(true);});return;}
   const code=$('code')?.value.trim().toUpperCase()||'';
   if(!create&&!/^(?:[A-Z0-9]{3}|[A-F0-9]{8})$/.test(code))return status('请输入 3 位房间码。');
-  if(s.picks.some(Boolean)&&!confirm('进入联机将使用房间阵容。新建房间会重新开始选人，继续吗？'))return;
   const preferredFormation=s.formation;busy=true;
   try{
     config=validatePublicConfig({url:$('url').value,key:$('key').value});localStorage.setItem('era-fc-cloud',JSON.stringify(config));
