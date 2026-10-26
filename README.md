@@ -97,4 +97,6 @@ AI 按真实阵容与位置选人，再统一下调 2 分（之前为 3 分）�
 
 ## 静态发布与版本核对
 
+Cloudflare Workers：构建命令为 `npm run build`，部署命令为 `npx wrangler deploy`。仓库根目录的 `wrangler.json` 已配置项目名、静态资源目录和必需的兼容日期。原部署命令 `npx wrangler deploy --name era-ball --assets ./dist` 也会读取该配置。若重试的是补配置之前的旧提交，可在 Cloudflare 构建设置中使用 `npx wrangler deploy --name era-ball --assets ./dist --compatibility-date 2026-10-19`，避免旧提交缺少配置。
+
 `npm run build` 生成 `dist/`，Netlify 自动执行此命令并发布该目录。每次构建按内容哈希为完整 JS 模块图和 CSS 使用独立的 `releases/<hash>/` 路径，避免首页更新但依赖模块仍是旧版。首页与 `release.json` 禁止缓存，资源目录使用不可变缓存。页脚显示“星尘版 · R13 · <hash>”用于核对实际加载版本；GitHub 已推送不等于 Netlify 已发布，部署状态须在 Netlify 确认。
