@@ -17,7 +17,7 @@ export function initAudio(){
  function apply(){
   save();if(musicGain)musicGain.gain.setTargetAtTime(settings.volume,context.currentTime,.04);
   if(!context||context.state!=='running'){message(settings.music?'点击页面后开启原创音乐':'背景音乐已关闭');return;}
-  if(settings.music&&!document.hidden){engine.start(track);message(settings.volume===0?'音乐音量为 0':'正在播放原创音乐 · 手鼓 / 拨弦 / 贝斯');}
+  if(settings.music&&!document.hidden){engine.start(track);message(settings.volume===0?'音乐音量为 0':'正在播放原创音乐 · 弦乐 / 低鼓 / 电影感铺底');}
   else{engine.stop();message(settings.music?'页面隐藏时音乐暂停':'背景音乐已关闭');}
  }
  function unlock(){const audio=ensureContext();if(!audio)return;if(audio.state==='suspended'){audio.resume().then(apply).catch(()=>message('请再点一次音乐开关以启动播放'));}else apply();}
@@ -29,7 +29,7 @@ export function initAudio(){
  }
  function paint(){
   container.replaceChildren();const toggle=document.createElement('button');toggle.id='audio-toggle';toggle.type='button';toggle.textContent=settings.music?'♫ 音乐':'♫ 声音';toggle.setAttribute('aria-expanded',String(open));toggle.onclick=()=>{open=!open;paint();};container.append(toggle);if(!open)return;
-  const panel=document.createElement('section');panel.id='audio-controls';panel.innerHTML=`<div class="audio-heading"><b>声音</b><span>ORIGINAL SOUNDTRACK</span></div><label><input id="music-enabled" type="checkbox" ${settings.music?'checked':''}> 原创背景音乐</label><label><input id="sfx-enabled" type="checkbox" ${settings.sfx?'checked':''}> 按钮点击音效</label><label class="audio-volume" for="music-volume">音乐音量 <span>${Math.round(settings.volume*100)}%</span></label><input id="music-volume" type="range" min="0" max="100" value="${Math.round(settings.volume*100)}"><div class="audio-track"><small>ERA FC ORIGINALS</small><b>${track.title}</b><span>${track.subtitle}</span></div><p class="audio-note">原创球场节奏 · 跨界面连续播放，不会切页重头开始。</p><p id="audio-notice" role="status"></p>`;
+  const panel=document.createElement('section');panel.id='audio-controls';panel.innerHTML=`<div class="audio-heading"><b>声音</b><span>ORIGINAL SOUNDTRACK</span></div><label><input id="music-enabled" type="checkbox" ${settings.music?'checked':''}> 原创背景音乐</label><label><input id="sfx-enabled" type="checkbox" ${settings.sfx?'checked':''}> 按钮点击音效</label><label class="audio-volume" for="music-volume">音乐音量 <span>${Math.round(settings.volume*100)}%</span></label><input id="music-volume" type="range" min="0" max="100" value="${Math.round(settings.volume*100)}"><div class="audio-track"><small>ERA FC ORIGINALS</small><b>${track.title}</b><span>${track.subtitle}</span></div><p class="audio-note">原创电影感运动配乐 · 跨界面连续播放，不会切页重头开始。</p><p id="audio-notice" role="status"></p>`;
   container.append(panel);message(notice);
   panel.querySelector('#music-enabled').onchange=e=>{settings.music=e.target.checked;unlock();apply();paint();};
   panel.querySelector('#sfx-enabled').onchange=e=>{settings.sfx=e.target.checked;save();};
