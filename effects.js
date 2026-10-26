@@ -18,3 +18,8 @@ export function darkMatter(rating){
  if(!hasDarkMatter(rating))return '';
  return `<span class="dark-matter" aria-hidden="true">${Array.from({length:14},(_,i)=>{const angle=i*Math.PI*2/14;return `<i style="--particle-x:${50+49*Math.cos(angle)}%;--particle-y:${50+49*Math.sin(angle)}%;--pull-x:${-14*Math.cos(angle)}px;--pull-y:${-14*Math.sin(angle)}px;--particle-delay:${-(i*.137)}s;--particle-size:${i%3===0?3:2}px"></i>`;}).join('')}<span class="matter-orbit"></span><span class="cosmic-void"><span class="cosmic-ring"></span><span class="cosmic-ring cosmic-ring-inner"></span></span></span>`;
 }
+
+export function splusStardust(rating){
+ if(!(rating>=105&&rating<110))return '';
+ return `<span class="splus-stardust" aria-hidden="true">${Array.from({length:12},(_,i)=>{const a=i*Math.PI*2/12;return `<i style="left:${50+49*Math.cos(a)}%;top:${50+49*Math.sin(a)}%;animation-delay:${-i*.19}s"></i>`;}).join('')}</span>`;
+}

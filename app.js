@@ -1,10 +1,11 @@
+import {initLobby} from './lobby.js';
 import {modes,modeName} from './modes.js';
 import {prepareFinal,finalFrame} from './final-match.js';
 import {updateFinalLive} from './final-view.js';
 import {createTournament,draftTeam} from './tournament.js';
 import {renderSeason,closeSeason,seasonVisible} from './season-view.js';
 import { activeChemistry, activeTrios, chemistryBonus, chemistryPairs, chemistryTrios } from './chemistry.js';
-import { playerSilhouette, splusLightning, placementImpact, darkMatter, hasDarkMatter } from './effects.js';
+import { playerSilhouette, splusLightning, placementImpact, darkMatter, hasDarkMatter, splusStardust } from './effects.js';
 import { positionName, positionList, heightLabel } from './display.js';
 import { candidateFor, selectCandidate, placeCandidate } from './placement.js';
 import { cloudConfig } from './config.js';
@@ -19,6 +20,8 @@ let profile=read('era-fc-profile-v1',{teamName:''});
 let s = hydrateState(read(storage, null));
 s.teamName=profile.teamName||s.teamName||'我的球队';
 let preferredCapacity=2;
+let lobby=null;
+let playStyle=sessionStorage.getItem('era-fc-play-style')||'solo';
 let placement = null, filter = '全部';
 let room = null, timer = null, remote = null, busy = false, polling = false, shownResult = false;
 let roomGeneration = 0, roomMessage = '', serverRevision = 0;
@@ -45,7 +48,7 @@ function adjustments(p, pos, state = s) {
   const a = eraAdjustment(p, state.targetEra), penalty = positionPenalty(p, pos);
   return `基础 ${p.rating} · 羁绊 +${chemistryBonus(state.picks,p)} · 位置 −${penalty} · 年代 −${a.penalty} = ${playerAbility(state,p,pos)}；${a.reason}`;
 }
-function energy(p) { return hasDarkMatter(p?.rating)?darkMatter(p.rating):splusLightning(p?.tier); }
+function energy(p) { return hasDarkMatter(p?.rating)?darkMatter(p.rating):splusLightning(p?.tier)+splusStardust(p?.rating); }
 function slot(p, i, pos, xy) {
   const preview = !p && placement?.slot === i ? candidateFor(s, placement) : null;
   const shown = p || preview;
@@ -55,14 +58,14 @@ function slot(p, i, pos, xy) {
   const originalBadge=shown&&playerAbility(viewState,shown,pos)!==shown.rating?`<span class="was-tier" title="初始评级 ${shown.tier} · 初始能力 ${shown.rating}" aria-label="初始评级 ${shown.tier}，初始能力 ${shown.rating}">was ${shown.tier}</span>`:'';
   const impact = p && landingImpact?.index===i && landingImpact.until>Date.now();
   const title = shown ? `${shown.name} · ${positionList(shown.positions)} · ${adjustments(shown, pos, viewState)}${preview ? '；再点同一位置确认' : ''}` : `空位：${positionName(pos)}`;
-  return `<button class="slot ${shown ? tierClass(grade) : ''} ${hasDarkMatter(actual)?'mythic':''} ${preview ? 'slot-preview selected' : ''} ${placement && !p ? 'can-place' : ''} ${impact?'is-impact':''}" data-slot="${i}" ${uiBusy() ? 'disabled' : ''} ${xy ? `style="left:${xy[0]}%;top:${xy[1]}%"` : ''} title="${esc(title)}" aria-label="${esc(title)}">
+  return `<button class="slot ${shown ? tierClass(grade) : ''} ${hasDarkMatter(actual)?'mythic':actual>=105?'silver':''} ${preview ? 'slot-preview selected' : ''} ${placement && !p ? 'can-place' : ''} ${impact?'is-impact':''}" data-slot="${i}" ${uiBusy() ? 'disabled' : ''} ${xy ? `style="left:${xy[0]}%;top:${xy[1]}%"` : ''} title="${esc(title)}" aria-label="${esc(title)}">
     ${shown ? `${energy({tier:grade,rating:actual})}${originalBadge}<em>${playerAbility(viewState,shown,pos)}</em><span class="${preview ? 'preview-player' : 'placed-player'}"><b>${esc(shown.name)}</b><small class="player-height">${heightLabel(shown)}</small><small class="slot-position">${positionName(pos)}</small></span>${preview ? `<small class="confirm-label">${committing?'锁定中…':'再点确认'}</small>` : ''}` : `<span class="plus">＋</span><small>${positionName(pos)}</small>`}${impact?placementImpact():''}</button>`;
 }
 function render() {
   const pool = poolById(s.pool);
-  for(const [mode,info] of Object.entries(modes))$(info.button).classList.toggle('active',s.mode===mode);
+  for(const [mode,info] of Object.entries(modes))if($(info.button))$(info.button).classList.toggle('active',s.mode===mode);
   $('squad-name').textContent=s.teamName||'我的球队';
-  renderInitialProfile();
+  renderInitialProfile();lobby?.update(s);$('online').hidden=playStyle!=='online'&&!room;
   $('formation').innerHTML = formationChoices.map(f=>`<option value="${f}">${formationName(f)}</option>`).join('') + (formationChoices.includes(s.formation)?'':`<option value="${s.formation}" hidden>旧存档阵型（可重新选择）</option>`);
   $('formation').value = s.formation; $('formation').disabled = formationLocked() || uiBusy();
   for (const id of ['wc','ucl','euro','copa','setup','reset','restart','profile','online','era-open']) if($(id)) $(id).disabled=uiBusy();
@@ -105,7 +108,7 @@ function render() {
   document.querySelectorAll('[data-filter]').forEach(b=>b.disabled=!visible||uiBusy());
   $('players').innerHTML = visible ? pool.players.filter(p => filter === '全部' || p.positions.some(v => groups[filter].includes(v))).sort((a, b) => b.rating - a.rating).map(p => {
     const taken = s.picks.some(x => x?.identity === p.identity), blocked = lockedIds.has(p.id);
-    return `<button class="player-card ${tierClass(p.tier)} ${hasDarkMatter(p.rating)?'mythic':''} ${placement?.playerId === p.id ? 'is-chosen' : ''}" data-player="${esc(p.id)}" aria-pressed="${placement?.playerId === p.id}" ${taken || blocked || uiBusy() || s.picks.every(Boolean) ? 'disabled' : ''} title="${esc(`${p.name} · ${heightLabel(p)} · ${positionList(p.positions)}`)}">
+    return `<button class="player-card ${tierClass(p.tier)} ${hasDarkMatter(p.rating)?'mythic':p.rating>=105?'silver':''} ${placement?.playerId === p.id ? 'is-chosen' : ''}" data-player="${esc(p.id)}" aria-pressed="${placement?.playerId === p.id}" ${taken || blocked || uiBusy() || s.picks.every(Boolean) ? 'disabled' : ''} title="${esc(`${p.name} · ${heightLabel(p)} · ${positionList(p.positions)}`)}">
       ${energy(p)}<span class="avatar" aria-hidden="true">${playerSilhouette()}</span><span class="player-info"><span class="name">${esc(p.name)}</span><small class="player-height">${heightLabel(p)}</small><small class="player-positions">${positionList(p.positions)}</small><small class="player-base-rating">初始能力 <b>${p.rating}</b></small>${blocked ? '<small class="opponent-lock">🔒 对手已锁定此版本</small>' : taken ? '<small>已入队</small>' : ''}</span><span class="tier">${p.tier}</span></button>`;
   }).join('') : `<div class="spin-placeholder"><b>${spinning ? '球队与年代抽选中…' : s.picks.every(Boolean) ? '阵容已完成' : s.started ? '等待你按下 SPIN' : '先选择征战年代'}</b><p>${spinning ? '停下后才会揭晓本轮球员。' : '每次手动抽取一组，选人后不会自动跳到下一组。'}</p></div>`;
   document.querySelectorAll('[data-player]').forEach(b => b.onclick = () => {
@@ -181,13 +184,13 @@ function playerDetail(i) {
     <p>球员及位置已锁定，本局不能换位、替换或移出。可重开开始新一局。</p>`);
 }
 
-function reset(mode = s.mode) {
+function reset(mode = s.mode, afterReset=null) {
   if(uiBusy()||finalBusy||finalFinishing)return notify('当前操作正在确认，请稍后再重开。');
   if((s.started||room)&&!confirm('重开会清空本局阵容并离开当前房间，球队名会保留。继续吗？'))return;
   stopAuto();clearInterval(finalTimer);clearTimeout(finalFinishTimer);finalTimer=null;finalFinishTimer=null;finalSession=null;
   if(room)disconnect();else{roomGeneration++;closeSeason();}
   tournament=null;seasonCursor=0;seasonPage=null;seasonBusy=false;seasonFailure='';localStorage.removeItem(localSeasonKey);
-  s=freshState(mode,profile.teamName||s.teamName||'我的球队');placement=null;filter='全部';save();setupUI();
+  s=freshState(mode,profile.teamName||s.teamName||'我的球队');placement=null;filter='全部';save();if(afterReset)afterReset();else setupUI();
 }
 function renderInitialProfile(){
  const el=$('profile-settings');if(!el)return;el.hidden=Boolean(profile.teamName);
@@ -213,9 +216,6 @@ $('setup').onclick = setupUI;
 $('spin').onclick = () => beginSpin(false);
 $('roll').onclick = () => beginSpin(true);
 $('formation').onchange = e => { if (!formationLocked()&&!uiBusy()) commitRoster({...s,formation:e.target.value}); };
-$('wc').onclick = () => s.mode !== 'world_cup' && reset('world_cup');
-$('ucl').onclick = () => s.mode !== 'ucl' && reset('ucl');
-$('euro').onclick=()=>s.mode!=='euro'&&reset('euro');$('copa').onclick=()=>s.mode!=='copa_america'&&reset('copa_america');
 $('reset').onclick = () => reset();
 $('rules').onclick = () => modal(`<h2>更多年代，更多选择</h2><p>收录 ${pools.length} 支年代球队、${pools.reduce((n, p) => n + p.players.length, 0)} 条球员年代记录，覆盖 12 个年代区间。球员库为精选真实阵容，非完整官方注册名单；评分参考该赛季表现，属于人工估值。</p>
   <div class="tier-legend">${[['S+', '105+'], ['S', '98–104'], ['A', '90–97'], ['B', '82–89'], ['C', '75–81'], ['D', '1–74']].map(([t, r]) => `<span class="${tierClass(t)}">${t} ${r}</span>`).join('')}</div><p>评级按当届或当季表现估值，不再设每支来源球队最多三名 S／S+ 的限制；历史强队可有更多高评级，但不同年代版本分别评分。候选卡显示姓名、身高、位置、原始评级和初始能力；入队后按位置、年代和羁绊计算实际能力。先点球员，再点空位查看半透明试位与实际能力，第二次点同一空位才正式签下。试位不会消耗选人或重转次数，也不会提前提交联机。每轮先按 Spin，停下后才显示候选；确认入队后等待下一次手动 Spin。</p>
@@ -366,13 +366,13 @@ function roomMembers(){
 }
 async function checkConnection(){
  if(busy)return;busy=true;for(const id of ['check-connection','create','join'])if($(id))$(id).disabled=true;
- try{config=validatePublicConfig({url:$('url').value,key:$('key').value});localStorage.setItem('era-fc-cloud',JSON.stringify(config));status('正在检查匿名登录…');await auth();status('匿名登录正常，正在检查联机数据库…');const capability=await rpc('fc_protocol_v3',{});if(Number(capability.room_version||0)<12||Number(capability.chemistry_version||0)<4||Number(capability.catalog_count)<pools.reduce((n,p)=>n+p.players.length,0))throw Error('数据库升级尚未完成，请运行最新完整 SQL。');status('连接检查通过，可以创建房间或加入朋友的房间。');}
+ try{config=validatePublicConfig({url:$('url').value,key:$('key').value});localStorage.setItem('era-fc-cloud',JSON.stringify(config));status('正在检查匿名登录…');await auth();status('匿名登录正常，正在检查联机数据库…');const capability=await rpc('fc_protocol_v3',{});if(Number(capability.room_version||0)<13||Number(capability.chemistry_version||0)<4||Number(capability.catalog_count)<pools.reduce((n,p)=>n+p.players.length,0))throw Error('数据库升级尚未完成，请运行最新完整 SQL。');status('连接检查通过，可以创建房间或加入朋友的房间。');}
  catch(e){status(readableError(e));if(e.code==='PGRST202'||e.message?.includes('数据库升级'))showUpgradeHelp();}
  finally{busy=false;for(const id of ['check-connection','create','join'])if($(id))$(id).disabled=false;}
 }
 function onlineUI() {
   modal(`<h2>联机 · 2–4 人共同征战</h2><p>各自组建 16 人阵容，全部玩家完成选人后进入同一届杯赛。两人分属不同半区；三、四人分别进入独立小组，晋级后可能在淘汰赛交手。</p>
-    ${room ? `<p>房间 <b>${esc(room)}</b> · ${modeName(s.mode)} · ${remote?.members?.length||1}/${remote?.capacity||preferredCapacity} 人已加入</p><div id="room-members"></div>` : `<label for="capacity">房间人数（创建时设置）</label><select id="capacity">${[2,3,4].map(n=>`<option value="${n}" ${preferredCapacity===n?'selected':''}>${n} 人</option>`).join('')}</select><label for="code">加入朋友的房间</label><input id="code" aria-label="房间码" placeholder="朋友的 8 位房间码" maxlength="8">`}
+    ${room ? `<p>房间 <b>${esc(room)}</b> · ${modeName(s.mode)} · ${remote?.members?.length||1}/${remote?.capacity||preferredCapacity} 人已加入</p><div id="room-members"></div>` : `<label for="capacity">房间人数（创建时设置）</label><select id="capacity">${[2,3,4].map(n=>`<option value="${n}" ${preferredCapacity===n?'selected':''}>${n} 人</option>`).join('')}</select><label for="code">加入朋友的房间</label><input id="code" aria-label="房间码" placeholder="朋友的 3 位房间码" maxlength="8">`}
     <div class="setup-actions">${room ? '<button id="leave">离开房间</button>' : '<button id="check-connection">检测连接</button><button class="primary" id="create">创建房间</button><button id="join">加入房间</button>'}</div>
     <p id="status" role="status">${esc(roomMessage || '请选择人数后创建房间，或输入朋友的房间码加入。')}</p><details><summary>连接设置</summary><label for="url">项目 URL</label><input id="url" value="${esc(config.url)}" ${room ? 'disabled' : ''}><label for="key">Publishable / anon public key</label><input id="key" value="${esc(config.key)}" ${room ? 'disabled' : ''}></details>
     <p class="hint">队名：${esc(s.teamName||'我的球队')}。约每 1.5 秒同步；测试请使用独立设备或浏览器身份。重新开局会离开当前房间。</p>`);
@@ -391,9 +391,10 @@ function readableError(e) {
   if(/signup.*not.*allow/i.test(e.message||''))return '请在 Supabase 开启 Allow new users to sign up 并保存。';
   if(/invalid api key/i.test(e.message||''))return '项目地址与公开 key 不匹配，请检查连接设置。';
   if(/room is full/i.test(e.message||''))return '房间人数已满，请核对房间码或新建房间。';
-  if(/room not found/i.test(e.message||''))return '找不到这个房间，请核对 8 位房间码。';
+  if(/room not found/i.test(e.message||''))return '找不到这个房间，请核对 3 位房间码。';
   if(e.message?.includes('FC_INVALID_TEAM_NAME'))return '球队名需为 1–20 个字符。';
   if(e.message?.includes('FC_INSUFFICIENT_POOL'))return '保留的年代名单不足以供所有人选满阵容，请重开并少锁几个年代。';
+  if(e.message?.includes('FC_ROOM_CODE_BUSY'))return '暂时无法分配房间码，请稍后重试。';
   if(e.message?.includes('FC_ROSTER_LOCKED'))return '球员及位置已锁定，不能换位、替换或移出；阵型仍可切换，球员保留原槽位。';
   if(e.message?.includes('FC_NAME_LOCKED'))return '本局联机队名已锁定，请新开一局后改名。';
   if(e.message?.includes('FC_PLAYER_LOCKED'))return '这个球队年代版本已被对手抢先锁定，请选择其他球员。';
@@ -445,13 +446,13 @@ async function connect(create) {
   if(uiBusy()||room)return;
   if(create&&!s.started){preferredCapacity=Number($('capacity')?.value||preferredCapacity);setupUI(()=>{onlineUI();connect(true);});return;}
   const code=$('code')?.value.trim().toUpperCase()||'';
-  if(!create&&!/^[A-F0-9]{8}$/.test(code))return status('请输入 8 位房间码。');
+  if(!create&&!/^(?:[A-Z0-9]{3}|[A-F0-9]{8})$/.test(code))return status('请输入 3 位房间码。');
   if(s.picks.some(Boolean)&&!confirm('进入联机将使用房间阵容。新建房间会重新开始选人，继续吗？'))return;
   const preferredFormation=s.formation;busy=true;
   try{
     config=validatePublicConfig({url:$('url').value,key:$('key').value});localStorage.setItem('era-fc-cloud',JSON.stringify(config));
     $('create').disabled=true;$('join').disabled=true;status('正在连接…');
-    try{const capability=await rpc('fc_protocol_v3',{});if(Number(capability.room_version||0)<12||Number(capability.rating_version||0)<8||Number(capability.chemistry_version||0)<4||Number(capability.catalog_count)<pools.reduce((n,p)=>n+p.players.length,0))throw Error('新阵型与羁绊规则需要执行一次数据库升级 SQL。');}catch(e){if(e.code==='PGRST202'||e.status===404)throw Error('新联机规则需要执行一次数据库升级 SQL。');throw e;}
+    try{const capability=await rpc('fc_protocol_v3',{});if(Number(capability.room_version||0)<13||Number(capability.rating_version||0)<8||Number(capability.chemistry_version||0)<4||Number(capability.catalog_count)<pools.reduce((n,p)=>n+p.players.length,0))throw Error('三位房间码需要执行一次数据库升级 SQL。');}catch(e){if(e.code==='PGRST202'||e.status===404)throw Error('新联机规则需要执行一次数据库升级 SQL。');throw e;}
     preferredCapacity=Number($('capacity')?.value||preferredCapacity);
     if(create)validateRoomPool(s,preferredCapacity);
     const d=create?await rpc('fc_create_room_v9',{p_mode:s.mode,p_capacity:preferredCapacity}):await rpc('fc_connect_v3',{p_code:code,p_mode:s.mode});
@@ -485,7 +486,7 @@ async function poll() {
     status(lost?'你正在试位的版本已被对手锁定，请改选。':`房间 ${room} · ${d.members.length}/${d.capacity||2} 人已加入 · ${ready}/${d.capacity||2} 阵容完成 · 征战 ${eraById(s.targetEra).label}`);
     if(s.drawPhase==='ready'&&!spinning){const pool=poolById(s.pool);if(pool&&!pool.players.some(p=>!lockedIds.has(p.id)&&!s.picks.some(x=>x?.identity===p.identity))){s={...s,drawPhase:'awaiting'};placement=null;save();status('本组可选版本已全部锁定，请免费 Spin 下一组。');}}
     if(locksChanged||lost)render();
-    if(d.result){const open=!shownResult;shownResult=true;try{await syncOnlineSeason(open);}catch(e){if(open){onlineUI();status('联机赛季需要执行一次合并升级 SQL。');showUpgradeHelp();}}}
+    if(d.result&&!$('game-shell').hidden){const open=!shownResult;shownResult=true;try{await syncOnlineSeason(open);}catch(e){if(open){onlineUI();status('联机赛季需要执行一次合并升级 SQL。');showUpgradeHelp();}}}
   }catch(e){if(generation===roomGeneration)status(`房间 ${room} · 暂未同步：${readableError(e)}`);}
   finally{polling=false;}
 }
@@ -502,10 +503,25 @@ function showUpgradeHelp(){
   $('view-upgrade').onclick=async()=>{try{await loadSQL();selectSQL();$('upgrade-feedback').textContent='已显示完整 SQL，可直接全选复制。';}catch(e){failure(e);}};
   $('copy-upgrade').onclick=async()=>{const button=$('copy-upgrade');button.disabled=true;$('upgrade-feedback').textContent='正在加载 SQL…';try{const text=await loadSQL();try{await navigator.clipboard.writeText(text);button.textContent='已复制';$('upgrade-feedback').textContent='已复制完整 SQL，前往 Supabase SQL Editor 粘贴并运行。';}catch{selectSQL();$('upgrade-feedback').textContent='浏览器未允许自动复制，已为你全选下方 SQL。请按 Ctrl+C / Command+C 复制。';}}catch(e){failure(e);}finally{button.disabled=false;}};
 }
+function showHome(){
+ if(uiBusy())return;closeSeason();stopAuto();$('game-shell').hidden=true;$('home-screen').hidden=false;lobby?.reset();lobby?.update(s);history.replaceState(null,'','#home');scrollTo(0,0);
+}
+function showDraft(){
+ $('home-screen').hidden=true;$('game-shell').hidden=false;history.replaceState(null,'','#draft');lobby?.update(s);scrollTo(0,0);
+}
+function enterCompetition(mode,play){
+ if(uiBusy())return;
+ reset(mode,()=>{playStyle=play;sessionStorage.setItem('era-fc-play-style',playStyle);showDraft();render();if(play==='online')onlineUI();else setupUI();});
+}
+$('back-home').onclick=showHome;
+window.addEventListener('hashchange',()=>{if(location.hash==='#home')showHome();else if(location.hash==='#draft')showDraft();});
 $('formation').innerHTML = formationChoices.map(f => `<option value="${f}">${formationName(f)}</option>`).join('');
 render();
+lobby=initLobby({onCompetition:enterCompetition,onResume:showDraft,onProfile:profileUI});lobby.update(s);
+const requestedHash=location.hash;
+if(requestedHash==='#draft'||requestedHash==='#season')showDraft();else showHome();
 
-if(location.hash==='#season'&&s.picks.every(Boolean)){
+if(requestedHash==='#season'&&s.picks.every(Boolean)){
  const resume=sessionStorage.getItem('era-fc-season-room-v4');
  if(resume){(async()=>{try{const d=await rpc('fc_read_v3',{p_code:resume});room=resume;roomGeneration++;remote=d;const mine=d.members.find(m=>m.is_self);s=hydrateState(mine.state);serverRevision=mine.revision;shownResult=true;save();await syncOnlineSeason(true);timer=setInterval(poll,1500);}catch(e){closeSeason();notify('恢复联机赛季失败，请检查网络后刷新。'+readableError(e));}})();}
  else{try{openLocalSeason();}catch{closeSeason();}}

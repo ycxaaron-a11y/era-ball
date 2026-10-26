@@ -2378,17 +2378,19 @@ insert into public.fc_chemistry_pairs(id,left_identity,right_identity,bonus) val
 insert into public.fc_chemistry_trios(id,identities,bonus_mode,bonus) values ('bbc',ARRAY['cristiano-ronaldo','gareth-bale','karim-benzema'],'flat',5),('msn',ARRAY['lionel-messi','neymar','luis-suarez'],'flat',5),('dutch-three',ARRAY['ruud-gullit','marco-van-basten','frank-rijkaard'],'flat',5) on conflict(id) do update set identities=excluded.identities,bonus_mode=excluded.bonus_mode,bonus=excluded.bonus;
 
 create or replace function public.fc_protocol_v3() returns jsonb language sql security definer set search_path=public,pg_temp as $$
- select jsonb_build_object('version',3,'chemistry_version',4,'rating_version',8,'room_version',12,'catalog_count',(select count(*) from fc_player_catalog));
+ select jsonb_build_object('version',3,'chemistry_version',4,'rating_version',8,'room_version',13,'catalog_count',(select count(*) from fc_player_catalog));
 $$;
 create or replace function public._fc_connect_rules(p_code text,p_mode text,p_rules integer)
 returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$
-declare c text; r public.fc_rooms; n integer;
+declare c text; r public.fc_rooms; n integer; attempts integer:=0;
 begin
  if auth.uid() is null then raise exception 'Authentication required'; end if;
  if p_mode not in ('world_cup','ucl','euro','copa_america') or p_mode is null then raise exception 'Invalid mode'; end if;
  if p_code is null then
   loop
-   c=upper(substr(replace(gen_random_uuid()::text,'-',''),1,8));
+   attempts=attempts+1;
+   if attempts>100 then raise exception 'FC_ROOM_CODE_BUSY'; end if;
+   select string_agg(substr('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',1+floor(random()*36)::integer,1),'') into c from generate_series(1,3);
    insert into fc_rooms(code,mode,owner,rules_version) values(c,p_mode,auth.uid(),p_rules) on conflict do nothing returning * into r;
    exit when found;
   end loop;

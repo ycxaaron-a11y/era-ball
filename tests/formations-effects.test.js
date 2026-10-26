@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { formations, formationChoices, formationLayout, positions, pools, freshState, spinDraft, poolById, networkState, hydrateState, strength } from '../data.js';
 import { estimateHeight } from '../heights.js';
 import { playerHeights } from '../player-heights.js';
-import { splusLightning, playerSilhouette } from '../effects.js';
+import { splusLightning, playerSilhouette, splusStardust } from '../effects.js';
 
 test('all six selectable formations and legacy shapes have eleven on-field players and one keeper; new layouts have attacking midfielders', () => {
   assert.equal(formationChoices.length, 6);assert.ok(!formationChoices.includes('4-4-2'));assert.ok(formationChoices.includes('3-3-4'));assert.deepEqual(positions('3-3-4'),['LW','ST','ST','RW','CM','CM','CM','CB','CB','CB','GK']);assert.ok(!formationChoices.includes('3-5-2'));assert.ok(!formationChoices.includes('3-4-1-2'));assert.deepEqual(positions('4-3-3-attacking').slice(3,6),['CAM','CM','CM']);
@@ -50,3 +50,5 @@ test('S+ uses actual branched SVG bolts while other tiers remain free of lightni
   assert.match(playerSilhouette(),/player-silhouette/);assert.match(playerSilhouette(),/<circle/);assert.match(playerSilhouette(),/<path/);
   assert.doesNotMatch(playerSilhouette(),/<text/);
 });
+
+test('ordinary S+ gains white edge stardust only from 105 to 109',()=>{for(const score of [104,110,115])assert.equal(splusStardust(score),'');for(const score of [105,109])assert.equal((splusStardust(score).match(/<i /g)||[]).length,12);});
