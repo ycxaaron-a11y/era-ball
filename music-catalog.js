@@ -20,7 +20,7 @@ export function musicForScene({screen='home',mode='world_cup',eraId='2020s'}={})
  if(screen!=='draft'&&screen!=='season')return lobbyMusic;
  if(mode==='ucl')return ucl;if(mode==='copa_america')return copa;
  const era=eras.find(e=>e.id===eraId)||eras.at(-1),tracks=mode==='euro'?euro:worldCup;
- return tracks.find(t=>t.year>=era.from&&t.year<=era.to)||{id:`${mode}-${era.id}`,title:`${mode==='euro'?'欧洲杯':'世界杯'} · ${era.label}`,artist:'年代氛围',note:'这个年代没有已核实的歌曲链接，可添加官方视频或使用原创氛围音乐'};
+ return tracks.find(t=>t.year>=era.from&&t.year<=era.to)||{id:`${mode}-${era.id}`,title:`${mode==='euro'?'欧洲杯':'世界杯'} · ${era.label}`,artist:'年代氛围',note:'这个年代没有已核实的歌曲链接，可添加官方视频或使用本地音频'};
 }
 export function youtubeVideoId(value){
  try{const url=new URL(value),host=url.hostname.toLowerCase();let id='';if(url.protocol!=='https:')return null;if(host==='youtu.be')id=url.pathname.split('/')[1];else if(['youtube.com','www.youtube.com','m.youtube.com','music.youtube.com','www.youtube-nocookie.com'].includes(host))id=url.searchParams.get('v')||(/^\/(embed|shorts)\//.test(url.pathname)?url.pathname.split('/')[2]:'');return /^[A-Za-z0-9_-]{11}$/.test(id||'')?id:null;}catch{return null;}

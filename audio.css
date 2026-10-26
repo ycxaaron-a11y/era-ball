@@ -3,3 +3,6 @@
 #audio-widget{max-height:calc(100dvh - 24px);overflow:auto}#audio-widget:has(#official-music-player) #audio-controls{max-height:max(110px,calc(100dvh - 340px))}
 
 body.has-official-music{padding-bottom:320px}
+#official-music-player .music-player-actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap;padding:5px 9px}#official-music-player .music-player-actions button{font-size:10px;padding:7px;border:1px solid #9d835455;background:#30271c}#official-music-player .music-player-actions a{font-size:9px;color:#d3bce3}#audio-controls input[type=file]{width:100%;font-size:10px;color:#c9b99d}#play-local-music{width:100%;padding:9px;font-size:11px}
+
+#audio-brief{max-width:280px;padding:7px 10px;margin:0;background:#251d14f2;border:1px solid #b48b5660;border-radius:5px;color:#d6b98e;font-size:10px;line-height:1.5}
