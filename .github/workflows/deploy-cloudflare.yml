@@ -1,0 +1,60 @@
+name: Deploy ERA FC to Cloudflare
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Finish one deployment before starting the next; never cancel an active upload.
+concurrency:
+  group: cloudflare-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Test, build and publish original website
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check deployment secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          missing=0
+          for key in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID; do
+            if [[ -z "${!key}" ]]; then
+              echo "::error::Missing repository secret: $key. Open Settings > Secrets and variables > Actions."
+              missing=1
+            fi
+          done
+          if [[ "$missing" == 1 ]]; then
+            echo 'Add CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID under repository Settings → Secrets and variables → Actions, then use Re-run all jobs.' >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+      - name: Check out website
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # This site has no npm dependencies, so no install or lockfile is needed.
+      - name: Test game rules
+        run: npm test
+      - name: Build versioned website
+        run: npm run build
+      - name: Publish to existing Cloudflare Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: 'false'
+        run: npx --yes wrangler@4.152.0 deploy --name era-ball --assets ./dist --compatibility-date 2026-10-19
+      - name: Show published release
+        run: |
+          node --input-type=module -e 'import fs from "node:fs";const r=JSON.parse(fs.readFileSync("dist/release.json","utf8"));fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,`Published **${r.label}** (release ${r.release}) from commit ${process.env.GITHUB_SHA}.\n\nOpen https://era-ball.ycxaaron.workers.dev and refresh to verify the release.\n`);'

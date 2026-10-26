@@ -4,6 +4,8 @@
 
 ## 运行与部署
 
+学校电脑只能使用网页时，参见 [GitHub Actions 发布说明](docs/github-deploy.md)：配置两个仓库 Secrets 即可从 GitHub 构建并发布到原 Cloudflare 网址，绕过 Cloudflare 构建环境初始化。
+
 ```sh
 npm test
 npm run dev
