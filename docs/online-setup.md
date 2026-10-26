@@ -30,7 +30,7 @@
 
 ## 4. 刷新原网站
 
-等 Cloudflare 最新部署显示成功，打开 https://era-ball.ycxaaron.workers.dev 。Mac 按 **Command + Shift + R**；Windows 按 **Ctrl + Shift + R** 强制刷新，朋友也要刷新。页脚应显示“星尘版 · R16”及版本编号；如果仍没有这个标记，请先到 Cloudflare → era-ball → Deployments 确认最新提交已部署成功，避免在旧页面反复升级数据库。建议本次从新一局开始，避免新旧球员目录和比赛引擎混用。
+等 Cloudflare 最新部署显示成功，打开 https://era-ball.ycxaaron.workers.dev 。Mac 按 **Command + Shift + R**；Windows 按 **Ctrl + Shift + R** 强制刷新，朋友也要刷新。页脚应显示“星尘版 · R17”及版本编号；如果仍没有这个标记，请先到 Cloudflare → era-ball → Deployments 确认最新提交已部署成功，避免在旧页面反复升级数据库。建议本次从新一局开始，避免新旧球员目录和比赛引擎混用。
 
 项目地址和 publishable key 已经放在网站公开配置中，不需要重新填写。不要把数据库密码、secret key 或 service_role key 填到网页。
 

@@ -1,6 +1,14 @@
-import test from 'node:test';import assert from 'node:assert/strict';import {audioSettings,youtubeErrorMessage} from '../audio.js';import {musicForScene,youtubeVideoId,musicSearchURL} from '../music-catalog.js';
-test('audio settings clamp persisted volume and reject invalid saved video identifiers',()=>{assert.equal(audioSettings().sfx,true);assert.equal(audioSettings({volume:9}).volume,1);assert.equal(audioSettings({volume:-2}).volume,0);assert.equal(audioSettings({source:'invalid'}).source,'official');assert.deepEqual(audioSettings({links:{a:'<script>',b:'pRpeEdMmmQ0'}}).links,{b:'pRpeEdMmmQ0'});assert.equal(audioSettings({music:false,sfx:false}).music,false);});
-test('lobby uses the corrected Let Go title and era selection uses the chosen tournament interval',()=>{const home=musicForScene({screen:'home'});assert.equal(home.title,'Let Go');assert.equal(home.artist,'Beau Young Prince');assert.equal(home.videoId,'4VvAUcJ2Yms');const world=musicForScene({screen:'draft',mode:'world_cup',eraId:'2010s-a'});assert.match(world.title,/Waka Waka/);assert.equal(world.year,2010);assert.equal(musicForScene({screen:'draft',mode:'world_cup',eraId:'2010s-b'}).year,2018);assert.equal(musicForScene({screen:'season',mode:'euro',eraId:'2010s-b'}).year,2016);assert.equal(musicForScene({screen:'draft',mode:'ucl',eraId:'1960s'}).year,1992);assert.match(musicForScene({screen:'draft',mode:'euro',eraId:'1960s'}).note,/没有已核实/);assert.ok(musicSearchURL(home).startsWith('https://www.youtube.com/results?'));});
-test('only supported HTTPS video links produce a safe iframe identifier',()=>{for(const url of ['https://www.youtube.com/watch?v=pRpeEdMmmQ0','https://youtu.be/pRpeEdMmmQ0?t=5','https://www.youtube-nocookie.com/embed/pRpeEdMmmQ0'])assert.equal(youtubeVideoId(url),'pRpeEdMmmQ0');for(const url of ['javascript:alert(1)','http://youtube.com/watch?v=pRpeEdMmmQ0','https://youtube.com.evil.example/watch?v=pRpeEdMmmQ0','https://www.youtube.com/watch?v=bad','not a url'])assert.equal(youtubeVideoId(url),null);});
-
-test('legacy synthesized-music preferences migrate to video, and provider failures have specific readable causes',()=>{assert.equal(audioSettings({source:'ambient'}).source,'official');assert.equal(audioSettings({source:'local'}).source,'local');assert.match(youtubeErrorMessage(150),/禁止站外播放/);assert.match(youtubeErrorMessage(153),/来源/);assert.match(youtubeErrorMessage(100),/不可用/);});
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {audioSettings} from '../audio.js';
+import {musicForScene,musicCatalog} from '../music-catalog.js';
+test('music preserves explicit mute and volume preferences and discards obsolete provider settings',()=>{
+ assert.deepEqual(audioSettings(),{music:true,sfx:true,volume:.45});
+ assert.deepEqual(audioSettings({music:false,sfx:false,volume:.3,source:'official',links:{lobby:'obsolete'}}),{music:false,sfx:false,volume:.3});
+ assert.equal(audioSettings({volume:9}).volume,1);assert.equal(audioSettings({volume:-2}).volume,0);assert.equal(audioSettings({volume:NaN}).volume,.45);
+});
+test('original soundtrack increases pace and arrangement through lobby, draft and season',()=>{
+ assert.equal(musicForScene().id,'kickoff');assert.equal(musicForScene({screen:'daily-card'}).id,'kickoff');
+ assert.equal(musicForScene({screen:'draft'}).bpm,132);assert.equal(musicForScene({screen:'season'}).bpm,136);
+ assert.equal(new Set(musicCatalog.map(t=>t.id)).size,3);assert.ok(musicCatalog.every(t=>!t.videoId&&t.bpm>=128));
+});
