@@ -1,6 +1,6 @@
 # ERA FC
 
-世界杯 / 欧冠 / 欧洲杯 / 美洲杯跨年代足球选秀与逐轮杯赛。纯静态 ES modules，零 npm 运行依赖。当前界面 R17：独立大厅、Mini Games / Daily Card、可控背景音乐与点击音效、三位房间码，以及单人 / 多人共享杯赛。
+世界杯 / 欧冠 / 欧洲杯 / 美洲杯跨年代足球选秀与逐轮杯赛。纯静态 ES modules，零 npm 运行依赖。当前界面 R18：独立大厅、Mini Games / Daily Card、可控背景音乐与点击音效、三位房间码，以及单人 / 多人共享杯赛。
 
 ## 运行与部署
 
@@ -99,7 +99,7 @@ npm run dev
 
 Cloudflare Workers：构建命令为 `npm run build`，部署命令为 `npx wrangler deploy`。仓库根目录的 `wrangler.json` 已配置项目名、静态资源目录和必需的兼容日期。原部署命令 `npx wrangler deploy --name era-ball --assets ./dist` 也会读取该配置。若重试的是补配置之前的旧提交，可在 Cloudflare 构建设置中使用 `npx wrangler deploy --name era-ball --assets ./dist --compatibility-date 2026-10-19`，避免旧提交缺少配置。
 
-`npm run build` 生成 `dist/`，Netlify 自动执行此命令并发布该目录。每次构建按内容哈希为完整 JS 模块图和 CSS 使用独立的 `releases/<hash>/` 路径，避免首页更新但依赖模块仍是旧版。首页与 `release.json` 禁止缓存，资源目录使用不可变缓存。页脚显示“星尘版 · R17 · <hash>”用于核对实际加载版本；GitHub 已推送不等于线上已发布，部署状态须在 Cloudflare 的 Deployments 确认。
+`npm run build` 生成 `dist/`，Netlify 自动执行此命令并发布该目录。每次构建按内容哈希为完整 JS 模块图和 CSS 使用独立的 `releases/<hash>/` 路径，避免首页更新但依赖模块仍是旧版。首页与 `release.json` 禁止缓存，资源目录使用不可变缓存。页脚显示“星尘版 · R18 · <hash>”用于核对实际加载版本；GitHub 已推送不等于线上已发布，部署状态须在 Cloudflare 的 Deployments 确认。
 
 ## 大厅与短房间码
 
@@ -113,4 +113,4 @@ Cloudflare Workers：构建命令为 `npm run build`，部署命令为 `npx wran
 
 ## 声音
 
-右下角“声音”可开关原创电子运动配乐、调整音乐音量或关闭点击音效。大厅、选秀、赛季分别使用 128 / 132 / 136 BPM 的原创编曲，包含鼓点、贝斯、和弦、旋律与琶音。已移除外部歌曲播放器及音频导入入口；首次点击页面后启动，旧设备的关闭偏好保留。详情见 [声音与赛事曲目](docs/music.md)。此次音乐更新不需要 SQL。
+右下角“声音”可开关原创球场节奏、调整音乐音量或关闭点击音效。R18 使用统一的 120 BPM 手鼓、拨弦和温暖贝斯配乐，跨大厅、选秀、比赛和小游戏连续播放；去掉高八度琶音、锯齿波主旋律以及有音高的按钮提示音。默认音量 45%，保留设备上的静音偏好。详情见 [声音与赛事曲目](docs/music.md)。此次音乐更新不需要 SQL。
