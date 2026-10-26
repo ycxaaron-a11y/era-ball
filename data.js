@@ -174,12 +174,13 @@ export function hydrateState(saved) {
     return { ...fallback, ...saved, picks, drawPhase: phase };
   } catch { return fallback; }
 }
+export const simulationVersion = 15;
 // Existing SQL averages rating; submit effective values so online and local rules agree.
 export function networkState(s) {
   const legacyFormations = ['4-3-3', '4-4-2', '4-2-4', '3-5-2'];
   // The deployed RPC validates four legacy formation tags but calculates scores only
   // from submitted effective ratings. Preserve the actual layout separately.
-  return { ...s, lineupFormation: s.formation, formation: legacyFormations.includes(s.formation) ? s.formation : '4-3-3', picks: s.picks.map((p, i) => p ? { ...p, baseRating: p.rating,
+  return { ...s, simulationVersion, lineupFormation: s.formation, formation: legacyFormations.includes(s.formation) ? s.formation : '4-3-3', picks: s.picks.map((p, i) => p ? { ...p, baseRating: p.rating,
     rating: playerAbility(s, p, i < 11 ? positions(s.formation)[i] : 'SUB') } : null) };
 }
 export function season(s, random = Math.random) {

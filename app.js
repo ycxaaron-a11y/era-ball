@@ -1,8 +1,10 @@
+import {initAudio} from './audio.js';
+import {createDailyCardView} from './daily-card-view.js';
 import {initLobby} from './lobby.js';
 import {modes,modeName} from './modes.js';
 import {prepareFinal,finalFrame} from './final-match.js';
 import {updateFinalLive} from './final-view.js';
-import {createTournament,draftTeam} from './tournament.js';
+import {createTournament,draftTeam,optionsForRoomMembers} from './tournament.js';
 import {renderSeason,closeSeason,seasonVisible} from './season-view.js';
 import { activeChemistry, activeTrios, chemistryBonus, chemistryPairs, chemistryTrios } from './chemistry.js';
 import { playerSilhouette, splusLightning, placementImpact, darkMatter, hasDarkMatter, splusStardust } from './effects.js';
@@ -20,7 +22,7 @@ let profile=read('era-fc-profile-v1',{teamName:''});
 let s = hydrateState(read(storage, null));
 s.teamName=profile.teamName||s.teamName||'我的球队';
 let preferredCapacity=2;
-let lobby=null;
+let lobby=null,dailyView=null,soundEngine=null;
 let playStyle=sessionStorage.getItem('era-fc-play-style')||'solo';
 let placement = null, filter = '全部';
 let room = null, timer = null, remote = null, busy = false, polling = false, shownResult = false;
@@ -65,7 +67,7 @@ function render() {
   const pool = poolById(s.pool);
   for(const [mode,info] of Object.entries(modes))if($(info.button))$(info.button).classList.toggle('active',s.mode===mode);
   $('squad-name').textContent=s.teamName||'我的球队';
-  renderInitialProfile();lobby?.update(s);$('online').hidden=playStyle!=='online'&&!room;
+  renderInitialProfile();lobby?.update(s);soundEngine?.setScene({screen:!$('game-shell').hidden&&s.started?'draft':'home',mode:s.mode,eraId:s.targetEra});$('online').hidden=playStyle!=='online'&&!room;
   $('formation').innerHTML = formationChoices.map(f=>`<option value="${f}">${formationName(f)}</option>`).join('') + (formationChoices.includes(s.formation)?'':`<option value="${s.formation}" hidden>旧存档阵型（可重新选择）</option>`);
   $('formation').value = s.formation; $('formation').disabled = formationLocked() || uiBusy();
   for (const id of ['wc','ucl','euro','copa','setup','reset','restart','profile','online','era-open']) if($(id)) $(id).disabled=uiBusy();
@@ -249,7 +251,7 @@ async function syncOnlineSeason(open=false){
   const members=remote.members.filter(m=>m.state).sort((a,b)=>(a.seat??(a.host?0:1))-(b.seat??(b.host?0:1)));
   if(members.length!==(remote.capacity||2))return;
   const displayNames=members.map((m,i)=>m.state.teamName||`玩家 ${i+1}`);
-  tournament=createTournament({mode:s.mode,seed:state.seed,humans:members.map((m,i)=>draftTeam(m.state,m.host?'host':(m.seat??1)===1?'guest':`guest-${m.seat}`,displayNames.filter(n=>n===displayNames[i]).length>1?`${displayNames[i]} · ${(m.seat??i)+1}`:displayNames[i],true))});seasonCursor=0;seasonRoom=code;sessionStorage.setItem('era-fc-season-room-v4',code);
+  tournament=createTournament({mode:s.mode,seed:state.seed,...optionsForRoomMembers(members),humans:members.map((m,i)=>draftTeam(m.state,m.host?'host':(m.seat??1)===1?'guest':`guest-${m.seat}`,displayNames.filter(n=>n===displayNames[i]).length>1?`${displayNames[i]} · ${(m.seat??i)+1}`:displayNames[i],true))});seasonCursor=0;seasonRoom=code;sessionStorage.setItem('era-fc-season-room-v4',code);
  }
  const changed=seasonCursor!==state.cursor;seasonCursor=Math.max(seasonCursor,state.cursor);
  if(state.cursor===5){try{const data=await rpc('fc_final_v5',{p_code:code,p_action:'read',p_expected:null});if(data.live)applyFinalData(data);}catch{/* Old projects can upgrade when starting the final. */}}
@@ -502,22 +504,31 @@ function showUpgradeHelp(){
   $('copy-upgrade').onclick=async()=>{const button=$('copy-upgrade');button.disabled=true;$('upgrade-feedback').textContent='正在加载 SQL…';try{const text=await loadSQL();try{await navigator.clipboard.writeText(text);button.textContent='已复制';$('upgrade-feedback').textContent='已复制完整 SQL，前往 Supabase SQL Editor 粘贴并运行。';}catch{selectSQL();$('upgrade-feedback').textContent='浏览器未允许自动复制，已为你全选下方 SQL。请按 Ctrl+C / Command+C 复制。';}}catch(e){failure(e);}finally{button.disabled=false;}};
 }
 function showHome(){
- if(uiBusy())return;closeSeason();stopAuto();$('game-shell').hidden=true;$('home-screen').hidden=false;lobby?.reset();lobby?.update(s);history.replaceState(null,'','#home');scrollTo(0,0);
+ if(uiBusy())return;closeSeason();stopAuto();$('mini-games-screen').hidden=true;$('daily-card-screen').hidden=true;$('game-shell').hidden=true;$('home-screen').hidden=false;lobby?.reset();lobby?.update(s);history.replaceState(null,'','#home');soundEngine?.setScene({screen:'home'});scrollTo(0,0);
 }
 function showDraft(){
- $('home-screen').hidden=true;$('game-shell').hidden=false;history.replaceState(null,'','#draft');lobby?.update(s);scrollTo(0,0);
+ $('mini-games-screen').hidden=true;$('daily-card-screen').hidden=true;$('home-screen').hidden=true;$('game-shell').hidden=false;history.replaceState(null,'','#draft');lobby?.update(s);soundEngine?.setScene({screen:s.started?'draft':'home',mode:s.mode,eraId:s.targetEra});scrollTo(0,0);
 }
+function showMiniGames(){
+ if(uiBusy())return;closeSeason();stopAuto();$('home-screen').hidden=true;$('game-shell').hidden=true;$('daily-card-screen').hidden=true;$('mini-games-screen').hidden=false;history.replaceState(null,'','#mini-games');soundEngine?.setScene({screen:'home'});scrollTo(0,0);
+}
+function showDailyCard(){
+ if(uiBusy())return;closeSeason();stopAuto();$('home-screen').hidden=true;$('game-shell').hidden=true;$('mini-games-screen').hidden=true;$('daily-card-screen').hidden=false;history.replaceState(null,'','#daily-card');dailyView.open();soundEngine?.setScene({screen:'home'});scrollTo(0,0);
+}
+$('minis-home').onclick=showHome;$('open-daily-card').onclick=showDailyCard;
 function enterCompetition(mode,play){
  if(uiBusy())return;
  reset(mode,()=>{playStyle=play;sessionStorage.setItem('era-fc-play-style',playStyle);showDraft();render();if(play==='online')onlineUI();else setupUI();});
 }
 $('back-home').onclick=showHome;
-window.addEventListener('hashchange',()=>{if(location.hash==='#home')showHome();else if(location.hash==='#draft')showDraft();});
+window.addEventListener('hashchange',()=>{if(location.hash==='#home')showHome();else if(location.hash==='#draft')showDraft();else if(location.hash==='#mini-games')showMiniGames();else if(location.hash==='#daily-card')showDailyCard();});
 $('formation').innerHTML = formationChoices.map(f => `<option value="${f}">${formationName(f)}</option>`).join('');
 render();
-lobby=initLobby({onCompetition:enterCompetition,onResume:showDraft,onProfile:profileUI});lobby.update(s);
+lobby=initLobby({onCompetition:enterCompetition,onResume:showDraft,onProfile:profileUI,onMiniGames:showMiniGames});lobby.update(s);
+dailyView=createDailyCardView({onAllGames:showMiniGames});
+soundEngine=initAudio();
 const requestedHash=location.hash;
-if(requestedHash==='#draft'||requestedHash==='#season')showDraft();else showHome();
+if(requestedHash==='#draft'||requestedHash==='#season')showDraft();else if(requestedHash==='#mini-games')showMiniGames();else if(requestedHash==='#daily-card')showDailyCard();else showHome();
 
 if(requestedHash==='#season'&&s.picks.every(Boolean)){
  const resume=sessionStorage.getItem('era-fc-season-room-v4');

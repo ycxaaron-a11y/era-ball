@@ -1,4 +1,4 @@
-import {pools,positions,playerAbility,positionPenalty} from './data.js';
+import {pools,positions,playerAbility,positionPenalty,simulationVersion} from './data.js';
 import {seeded} from './random.js';
 import {prepareFinal} from './final-match.js';
 export {seeded} from './random.js';
@@ -22,13 +22,13 @@ function botPlayers(pool,id,adjustment=2){
  const remaining=[...pool.players],players=positions('4-3-3').map((pos,i)=>{remaining.sort((a,b)=>(b.rating-positionPenalty(b,pos))-(a.rating-positionPenalty(a,pos)));const p=remaining.shift();return{id:`${id}:${i}`,name:p.name,pos,rating:Math.max(15,p.rating-positionPenalty(p,pos)-adjustment)};});
  // The new national-team cups contain almost exclusively deep finalist squads.
  // Keep those AI averages comparable to the established modes, without changing human teams.
- if(adjustment>0&&['euro','copa_america'].includes(pool.mode)){const excess=Math.max(0,Math.ceil(players.reduce((sum,p)=>sum+p.rating,0)/11-(91-adjustment)));for(const p of players)p.rating=Math.max(15,p.rating-excess);}
+ if(['euro','copa_america'].includes(pool.mode)){const excess=Math.max(0,Math.ceil(players.reduce((sum,p)=>sum+p.rating,0)/11-(91-adjustment)));for(const p of players)p.rating=Math.max(15,p.rating-excess);}
  return players;
 }
 export function createTournament({mode='ucl',seed,humans,aiAdjustment,finalGoalFactor}){
- const adjustment=aiAdjustment??(humans.length===1?1:2),finalFactor=finalGoalFactor??(humans.length===1?.76:.88);
+ const adjustment=aiAdjustment??-1,finalFactor=finalGoalFactor??(humans.length===1?.76:.88);
  const rng=seeded(seed);const candidates=pools.filter(p=>p.mode===mode).map(p=>({p,order:rng()})).sort((a,b)=>a.order-b.order);
- const bots=candidates.slice(0,16-humans.length).map(({p},i)=>({id:`bot-${i}`,name:`${p.team} ${p.year}`,players:botPlayers(p,`bot-${i}`,Math.max(0,adjustment))}));
+ const bots=candidates.slice(0,16-humans.length).map(({p},i)=>({id:`bot-${i}`,name:`${p.team} ${p.year}`,players:botPlayers(p,`bot-${i}`,Math.max(-3,Math.min(10,adjustment)))}));
  const groups=Array.from({length:4},(_,i)=>({name:'ABCD'[i],teams:[]}));if(humans.length<1||humans.length>4)throw Error('杯赛支持 1–4 名玩家');humans.forEach((human,i)=>groups[[0,2,1,3][i]].teams.push(human));for(const group of groups)while(group.teams.length<4)group.teams.push(bots.shift());
  const teams=groups.flatMap(g=>g.teams),phases=[];const fixtures=[[[0,3],[1,2]],[[0,2],[3,1]],[[0,1],[2,3]]];
  for(let r=0;r<3;r++)phases.push({title:`小组赛 · 第 ${r+1} 轮`,matches:groups.flatMap(g=>fixtures[r].map(([a,b],i)=>({...match(g.teams[a],g.teams[b],false,rng,`g${r}-${g.name}-${i}`),group:g.name})))});
@@ -38,3 +38,6 @@ export function createTournament({mode='ucl',seed,humans,aiAdjustment,finalGoalF
  return prepareFinal({version:5,seed,mode,groups,teams,phases,champion:entrants[0]});
 }
 export function statistics(tournament,cursor){const matches=tournament.phases.slice(0,cursor).flatMap(p=>p.matches);return tournament.teams.flatMap(t=>t.players.map(p=>{const played=matches.filter(m=>m.home===t.id||m.away===t.id),goals=played.reduce((n,m)=>n+m.events.filter(e=>e.scorer===p.id).length,0),assists=played.reduce((n,m)=>n+m.events.filter(e=>e.assist===p.id).length,0),mvps=played.filter(m=>m.mvp.player.id===p.id).length,total=played.reduce((n,m)=>n+(m.performances.find(x=>x.player.id===p.id)?.score||0),0);return{...p,team:t.name,goals,assists,mvps,played:played.length,average:played.length?total/played.length:0,award:goals*3+assists*2+mvps*2+total/10};})).filter(p=>p.played);}
+
+// Mixed old/new browser tabs share the older multiplayer balance until everyone updates.
+export function optionsForRoomMembers(members){return members.every(m=>m.state?.simulationVersion===simulationVersion)?{}:{aiAdjustment:2,finalGoalFactor:.88};}

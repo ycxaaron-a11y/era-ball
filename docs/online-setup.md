@@ -30,7 +30,7 @@
 
 ## 4. 刷新原网站
 
-等 Cloudflare 最新部署显示成功，打开 https://era-ball.ycxaaron.workers.dev 。Mac 按 **Command + Shift + R**；Windows 按 **Ctrl + Shift + R** 强制刷新，朋友也要刷新。页脚应显示“星尘版 · R14”及版本编号；如果仍没有这个标记，请先到 Cloudflare → era-ball → Deployments 确认最新提交已部署成功，避免在旧页面反复升级数据库。建议本次从新一局开始，避免新旧球员目录和比赛引擎混用。
+等 Cloudflare 最新部署显示成功，打开 https://era-ball.ycxaaron.workers.dev 。Mac 按 **Command + Shift + R**；Windows 按 **Ctrl + Shift + R** 强制刷新，朋友也要刷新。页脚应显示“星尘版 · R15”及版本编号；如果仍没有这个标记，请先到 Cloudflare → era-ball → Deployments 确认最新提交已部署成功，避免在旧页面反复升级数据库。建议本次从新一局开始，避免新旧球员目录和比赛引擎混用。
 
 项目地址和 publishable key 已经放在网站公开配置中，不需要重新填写。不要把数据库密码、secret key 或 service_role key 填到网页。
 
@@ -51,3 +51,5 @@
 ## 网站提示需要升级时
 
 联机提示里也有 **复制升级 SQL** 按钮，它复制的就是同一份 `setup-all.sql`。复制后从第 2 步继续。如果连接仍失败，把提示的具体文字保留下来排查，避免重复创建项目。
+
+小游戏和声音设置均在浏览器本地运行，不需要额外升级 SQL。新的电脑难度应在所有成员刷新后新建房间使用；旧房间继续采用兼容的模拟参数。
