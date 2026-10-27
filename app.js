@@ -1,3 +1,4 @@
+import {createSevenView} from './seven-view.js';
 import {initAudio} from './audio.js';
 import {createDailyCardView} from './daily-card-view.js';
 import {initLobby} from './lobby.js';
@@ -22,7 +23,7 @@ let profile=read('era-fc-profile-v1',{teamName:''});
 let s = hydrateState(read(storage, null));
 s.teamName=profile.teamName||s.teamName||'我的球队';
 let preferredCapacity=2;
-let lobby=null,dailyView=null,soundEngine=null;
+let lobby=null,dailyView=null,sevenView=null,soundEngine=null;
 let playStyle=sessionStorage.getItem('era-fc-play-style')||'solo';
 let placement = null, filter = '全部';
 let room = null, timer = null, remote = null, busy = false, polling = false, shownResult = false;
@@ -452,7 +453,7 @@ async function connect(create) {
   try{
     config=validatePublicConfig({url:$('url').value,key:$('key').value});localStorage.setItem('era-fc-cloud',JSON.stringify(config));
     $('create').disabled=true;$('join').disabled=true;status('正在连接…');
-    try{const capability=await rpc('fc_protocol_v3',{});if(Number(capability.room_version||0)<13||Number(capability.rating_version||0)<8||Number(capability.chemistry_version||0)<4||Number(capability.catalog_count)<pools.reduce((n,p)=>n+p.players.length,0))throw Error('三位房间码需要执行一次数据库升级 SQL。');}catch(e){if(e.code==='PGRST202'||e.status===404)throw Error('新联机规则需要执行一次数据库升级 SQL。');throw e;}
+    try{const capability=await rpc('fc_protocol_v3',{});if(Number(capability.room_version||0)<13||Number(capability.rating_version||0)<8||Number(capability.chemistry_version||0)<4||Number(capability.catalog_count)<pools.reduce((n,p)=>n+p.players.length,0))throw Error('联机数据库尚未同步最新规则或球员名单，请运行下方完整升级 SQL。');}catch(e){if(e.code==='PGRST202'||e.status===404)throw Error('新联机规则需要执行一次数据库升级 SQL。');throw e;}
     preferredCapacity=Number($('capacity')?.value||preferredCapacity);
     if(create)validateRoomPool(s,preferredCapacity);
     const d=create?await rpc('fc_create_room_v9',{p_mode:s.mode,p_capacity:preferredCapacity}):await rpc('fc_connect_v3',{p_code:code,p_mode:s.mode});
@@ -504,31 +505,44 @@ function showUpgradeHelp(){
   $('copy-upgrade').onclick=async()=>{const button=$('copy-upgrade');button.disabled=true;$('upgrade-feedback').textContent='正在加载 SQL…';try{const text=await loadSQL();try{await navigator.clipboard.writeText(text);button.textContent='已复制';$('upgrade-feedback').textContent='已复制完整 SQL，前往 Supabase SQL Editor 粘贴并运行。';}catch{selectSQL();$('upgrade-feedback').textContent='浏览器未允许自动复制，已为你全选下方 SQL。请按 Ctrl+C / Command+C 复制。';}}catch(e){failure(e);}finally{button.disabled=false;}};
 }
 function showHome(){
- if(uiBusy())return;closeSeason();stopAuto();$('mini-games-screen').hidden=true;$('daily-card-screen').hidden=true;$('game-shell').hidden=true;$('home-screen').hidden=false;lobby?.reset();lobby?.update(s);history.replaceState(null,'','#home');soundEngine?.setScene({screen:'home'});scrollTo(0,0);
+ if(uiBusy())return;
+ $('seven-screen').hidden=true;sevenView?.close();
+ closeSeason();stopAuto();$('mini-games-screen').hidden=true;$('daily-card-screen').hidden=true;$('game-shell').hidden=true;$('home-screen').hidden=false;lobby?.reset();lobby?.update(s);history.replaceState(null,'','#home');soundEngine?.setScene({screen:'home'});scrollTo(0,0);
 }
 function showDraft(){
+ $('seven-screen').hidden=true;sevenView?.close();
  $('mini-games-screen').hidden=true;$('daily-card-screen').hidden=true;$('home-screen').hidden=true;$('game-shell').hidden=false;history.replaceState(null,'','#draft');lobby?.update(s);soundEngine?.setScene({screen:s.started?'draft':'home',mode:s.mode,eraId:s.targetEra});scrollTo(0,0);
 }
 function showMiniGames(){
- if(uiBusy())return;closeSeason();stopAuto();$('home-screen').hidden=true;$('game-shell').hidden=true;$('daily-card-screen').hidden=true;$('mini-games-screen').hidden=false;history.replaceState(null,'','#mini-games');soundEngine?.setScene({screen:'home'});scrollTo(0,0);
+ if(uiBusy())return;
+ $('seven-screen').hidden=true;sevenView?.close();
+ closeSeason();stopAuto();$('home-screen').hidden=true;$('game-shell').hidden=true;$('daily-card-screen').hidden=true;$('mini-games-screen').hidden=false;history.replaceState(null,'','#mini-games');soundEngine?.setScene({screen:'home'});scrollTo(0,0);
 }
 function showDailyCard(){
- if(uiBusy())return;closeSeason();stopAuto();$('home-screen').hidden=true;$('game-shell').hidden=true;$('mini-games-screen').hidden=true;$('daily-card-screen').hidden=false;history.replaceState(null,'','#daily-card');dailyView.open();soundEngine?.setScene({screen:'home'});scrollTo(0,0);
+ if(uiBusy())return;
+ $('seven-screen').hidden=true;sevenView?.close();
+ closeSeason();stopAuto();$('home-screen').hidden=true;$('game-shell').hidden=true;$('mini-games-screen').hidden=true;$('daily-card-screen').hidden=false;history.replaceState(null,'','#daily-card');dailyView.open();soundEngine?.setScene({screen:'home'});scrollTo(0,0);
 }
-$('minis-home').onclick=showHome;$('open-daily-card').onclick=showDailyCard;
+function showSeven(){
+ if(uiBusy())return;closeSeason();stopAuto();
+ for(const id of ['home-screen','game-shell','mini-games-screen','daily-card-screen'])$(id).hidden=true;
+ $('seven-screen').hidden=false;history.replaceState(null,'','#seven');sevenView.open();scrollTo(0,0);
+}
+$('minis-home').onclick=showHome;$('open-daily-card').onclick=showDailyCard;$('open-seven').onclick=showSeven;
 function enterCompetition(mode,play){
  if(uiBusy())return;
  reset(mode,()=>{playStyle=play;sessionStorage.setItem('era-fc-play-style',playStyle);showDraft();render();if(play==='online')onlineUI();else setupUI();});
 }
 $('back-home').onclick=showHome;
-window.addEventListener('hashchange',()=>{if(location.hash==='#home')showHome();else if(location.hash==='#draft')showDraft();else if(location.hash==='#mini-games')showMiniGames();else if(location.hash==='#daily-card')showDailyCard();});
+window.addEventListener('hashchange',()=>{if(location.hash==='#home')showHome();else if(location.hash==='#draft')showDraft();else if(location.hash==='#mini-games')showMiniGames();else if(location.hash==='#daily-card')showDailyCard();else if(location.hash==='#seven')showSeven();});
 $('formation').innerHTML = formationChoices.map(f => `<option value="${f}">${formationName(f)}</option>`).join('');
 render();
 lobby=initLobby({onCompetition:enterCompetition,onResume:showDraft,onProfile:profileUI,onMiniGames:showMiniGames});lobby.update(s);
 dailyView=createDailyCardView({onAllGames:showMiniGames});
+sevenView=createSevenView({onAllGames:showMiniGames});
 soundEngine=initAudio();
 const requestedHash=location.hash;
-if(requestedHash==='#draft'||requestedHash==='#season')showDraft();else if(requestedHash==='#mini-games')showMiniGames();else if(requestedHash==='#daily-card')showDailyCard();else showHome();
+if(requestedHash==='#draft'||requestedHash==='#season')showDraft();else if(requestedHash==='#mini-games')showMiniGames();else if(requestedHash==='#daily-card')showDailyCard();else if(requestedHash==='#seven')showSeven();else showHome();
 
 if(requestedHash==='#season'&&s.picks.every(Boolean)){
  const resume=sessionStorage.getItem('era-fc-season-room-v4');

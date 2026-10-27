@@ -1,3 +1,4 @@
+import {varietySquads} from './catalog-variety.js';
 import {internationalSquads} from './catalog-international.js';
 import {modes,isMode} from './modes.js';
 import {balanceRatings} from './rating-balance.js';
@@ -20,7 +21,7 @@ export const eraById = id => eras.find(e => e.id === id);
 export const eraForYear = year => eras.find(e => year >= e.from && year <= e.to);
 export const tier = r => r >= 105 ? 'S+' : r >= 98 ? 'S' : r >= 90 ? 'A' : r >= 82 ? 'B' : r >= 75 ? 'C' : 'D';
 export const tierClass = t => `tier-${t === 'S+' ? 'sp' : t.toLowerCase()}`;
-const allSquads = balanceRatings([...worldCupSquads, ...uclSquads, ...expansionSquads, ...internationalSquads]);
+const allSquads = balanceRatings([...worldCupSquads, ...uclSquads, ...expansionSquads, ...internationalSquads,...varietySquads]);
 const heightProfiles = buildHeightProfiles(allSquads.flatMap(squad => squad.players));
 export const pools = allSquads.map(squad => ({
   ...squad, era: String(squad.year), eraId: eraForYear(squad.year).id,
@@ -175,12 +176,14 @@ export function hydrateState(saved) {
   } catch { return fallback; }
 }
 export const simulationVersion = 15;
+export const catalogVersion = 20;
+export const legacyPoolIds = new Set([...worldCupSquads,...uclSquads,...expansionSquads,...internationalSquads].map(s=>s.id));
 // Existing SQL averages rating; submit effective values so online and local rules agree.
 export function networkState(s) {
   const legacyFormations = ['4-3-3', '4-4-2', '4-2-4', '3-5-2'];
   // The deployed RPC validates four legacy formation tags but calculates scores only
   // from submitted effective ratings. Preserve the actual layout separately.
-  return { ...s, simulationVersion, lineupFormation: s.formation, formation: legacyFormations.includes(s.formation) ? s.formation : '4-3-3', picks: s.picks.map((p, i) => p ? { ...p, baseRating: p.rating,
+  return { ...s, simulationVersion, catalogVersion, lineupFormation: s.formation, formation: legacyFormations.includes(s.formation) ? s.formation : '4-3-3', picks: s.picks.map((p, i) => p ? { ...p, baseRating: p.rating,
     rating: playerAbility(s, p, i < 11 ? positions(s.formation)[i] : 'SUB') } : null) };
 }
 export function season(s, random = Math.random) {

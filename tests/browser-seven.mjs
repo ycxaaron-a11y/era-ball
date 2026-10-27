@@ -1,0 +1,22 @@
+const {chromium}=await import(process.env.ERA_PLAYWRIGHT_MODULE||'playwright');
+import assert from 'node:assert/strict';
+import {freshState,startDraft,fit} from '../data.js';
+import {sevenPoolById,sevenPositions,sevenPlayers} from '../seven-a-side.js';
+const browser=await chromium.launch({executablePath:process.env.ERA_CHROMIUM||'/usr/bin/chromium',headless:true,args:['--no-sandbox','--disable-dev-shm-usage','--no-proxy-server']});
+try{
+ for(const width of [390,1440]){
+  const c=await browser.newContext({viewport:{width,height:1050},reducedMotion:'reduce'}),draft=startDraft(freshState('ucl','十一人存档'),'2020s',[]);
+  await c.addInitScript(draft=>{if(!localStorage.getItem('era-fc-v2'))localStorage.setItem('era-fc-v2',JSON.stringify(draft));localStorage.setItem('era-fc-audio-v1',JSON.stringify({music:false,sfx:false}));},{...draft});
+  const p=await c.newPage(),errors=[],dialogs=[];p.on('pageerror',e=>errors.push(e.message));p.on('dialog',d=>{dialogs.push(d.type());d.dismiss();});await p.goto(process.env.ERA_SITE_URL||'http://127.0.0.1:3001/');
+  const mainSaved=await p.evaluate(()=>localStorage.getItem('era-fc-v2'));await p.click('#choose-minis');assert.ok(await p.locator('#open-seven').isVisible());await p.click('#open-seven');await p.fill('#seven-name','七人测试队');await p.selectOption('#seven-era','2020s');await p.click('#seven-setup-form button[type=submit]');assert.equal(await p.locator('#seven-formation option').count(),4);assert.equal(await p.locator('[data-seven-slot]').count(),7);
+  for(let n=0;n<7;n++){
+   await p.click('#seven-spin');await p.waitForFunction(()=>JSON.parse(localStorage.getItem('era-fc-seven-v1'))?.phase==='ready');
+   const s=await p.evaluate(()=>JSON.parse(localStorage.getItem('era-fc-seven-v1'))),pool=sevenPoolById.get(s.pool),used=new Set(sevenPlayers(s).filter(Boolean).map(p=>p.identity)),options=[];
+   for(const [i,pos] of sevenPositions(s.formation).entries())if(!s.picks[i])for(const card of pool.players)if(!used.has(card.identity)&&(pos==='GK')===card.positions.includes('GK'))options.push({card,i,r:fit(card,pos,s.eraId)});
+   const {card,i}=options.sort((a,b)=>b.r-a.r)[0];await p.locator(`[data-seven-player="${card.id}"]`).click();await p.locator(`[data-seven-slot="${i}"]`).click();assert.ok(await p.locator(`[data-seven-slot="${i}"]`).evaluate(el=>el.classList.contains('slot-preview')));assert.equal((await p.evaluate(()=>JSON.parse(localStorage.getItem('era-fc-seven-v1')).picks.filter(Boolean).length)),n,'trial never commits');await p.locator(`[data-seven-slot="${i}"]`).click();assert.equal((await p.evaluate(()=>JSON.parse(localStorage.getItem('era-fc-seven-v1')).picks.filter(Boolean).length)),n+1);
+   if(n===0){const before=await p.evaluate(()=>JSON.parse(localStorage.getItem('era-fc-seven-v1')).picks);await p.selectOption('#seven-formation','3-1-2');assert.deepEqual(await p.evaluate(()=>JSON.parse(localStorage.getItem('era-fc-seven-v1')).picks),before);await p.reload();assert.ok(await p.locator('#seven-screen').isVisible());assert.deepEqual(await p.evaluate(()=>JSON.parse(localStorage.getItem('era-fc-seven-v1')).picks),before);}
+  }
+  assert.ok(await p.locator('#seven-start-cup').isVisible());await p.screenshot({path:`/tmp/era-seven-lineup-${width}.png`,fullPage:true});await p.click('#seven-start-cup');for(let round=0;round<3;round++){await p.click('#seven-next-round');assert.equal(await p.locator('.seven-fixture').count(),4/(2**round));if(round===0)await p.reload();}assert.match(await p.locator('.seven-cup h2').textContent(),/冠军/);assert.equal(await p.locator('#seven-next-round').count(),0);await p.screenshot({path:`/tmp/era-seven-cup-${width}.png`,fullPage:true});assert.equal(await p.evaluate(()=>localStorage.getItem('era-fc-v2')),mainSaved,'mini-game preserves eleven-player draft');
+  assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no mobile page overflow');await p.click('#seven-back');assert.ok(await p.locator('#mini-games-screen').isVisible());await p.click('#open-daily-card');assert.ok(await p.locator('#daily-card-screen').isVisible());assert.equal(await p.locator('#seven-screen').isVisible(),false);assert.deepEqual(dialogs,[]);assert.deepEqual(errors,[]);console.log(`PASS seven-a-side ${width}px: independent entry, 4 formations, manual spin, 7 double-confirm picks, fixed slots, reload, 3 cup rounds, no dialogs/errors/overflow`);await c.close();
+ }
+}finally{await browser.close();}

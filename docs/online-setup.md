@@ -6,7 +6,7 @@
 
 打开 [setup-all.sql](https://github.com/ycxaaron-a11y/era-ball/blob/main/supabase/setup-all.sql)。点击代码区域右上方的复制按钮；也可点击 Raw，使用 Command+A / Ctrl+A 全选，再复制。
 
-这是整份可执行代码，包含初始化、球员与年代目录、版本抢选锁、双人/三人羁绊（替补、错位同样激活）、新版稀有度与 110 基础能力、无上限实际能力、六种阵型、共享赛季和决赛直播、逐脚点球，以及本次 2260 条球员记录。之前的升级一个都没做过，也只需要这一份。已经升级过的项目也可以重跑。
+这是整份可执行代码，包含初始化、球员与年代目录、版本抢选锁、双人/三人羁绊（替补、错位同样激活）、新版稀有度与 110 基础能力、无上限实际能力、六种阵型、共享赛季和决赛直播、逐脚点球，以及本次 2778 条球员记录。之前的升级一个都没做过，也只需要这一份。已经升级过的项目也可以重跑。
 
 ## 2. 到原 Supabase 项目运行
 
@@ -30,7 +30,7 @@
 
 ## 4. 刷新原网站
 
-等 Cloudflare 最新部署显示成功，打开 https://era-ball.ycxaaron.workers.dev 。Mac 按 **Command + Shift + R**；Windows 按 **Ctrl + Shift + R** 强制刷新，朋友也要刷新。页脚应显示“星尘版 · R19”及版本编号；如果仍没有这个标记，请先到 Cloudflare → era-ball → Deployments 确认最新提交已部署成功，避免在旧页面反复升级数据库。建议本次从新一局开始，避免新旧球员目录和比赛引擎混用。
+等 Cloudflare 最新部署显示成功，打开 https://era-ball.ycxaaron.workers.dev 。Mac 按 **Command + Shift + R**；Windows 按 **Ctrl + Shift + R** 强制刷新，朋友也要刷新。页脚应显示“星尘版 · R20”及版本编号；如果仍没有这个标记，请先到 Cloudflare → era-ball → Deployments 确认最新提交已部署成功，避免在旧页面反复升级数据库。建议本次从新一局开始，避免新旧球员目录和比赛引擎混用。
 
 项目地址和 publishable key 已经放在网站公开配置中，不需要重新填写。不要把数据库密码、secret key 或 service_role key 填到网页。
 

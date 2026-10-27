@@ -1,4 +1,4 @@
-import {pools,positions,playerAbility,positionPenalty,simulationVersion} from './data.js';
+import {pools,positions,playerAbility,positionPenalty,simulationVersion,catalogVersion,legacyPoolIds} from './data.js';
 import {seeded} from './random.js';
 import {prepareFinal} from './final-match.js';
 export {seeded} from './random.js';
@@ -25,9 +25,9 @@ function botPlayers(pool,id,adjustment=2){
  if(['euro','copa_america'].includes(pool.mode)){const excess=Math.max(0,Math.ceil(players.reduce((sum,p)=>sum+p.rating,0)/11-(91-adjustment)));for(const p of players)p.rating=Math.max(15,p.rating-excess);}
  return players;
 }
-export function createTournament({mode='ucl',seed,humans,aiAdjustment,finalGoalFactor}){
+export function createTournament({mode='ucl',seed,humans,aiAdjustment,finalGoalFactor,catalogVersion:usedCatalog=catalogVersion}){
  const adjustment=aiAdjustment??-1,finalFactor=finalGoalFactor??(humans.length===1?.76:.88);
- const rng=seeded(seed);const candidates=pools.filter(p=>p.mode===mode).map(p=>({p,order:rng()})).sort((a,b)=>a.order-b.order);
+ const rng=seeded(seed);const candidates=pools.filter(p=>p.mode===mode&&(usedCatalog>=catalogVersion||legacyPoolIds.has(p.id))).map(p=>({p,order:rng()})).sort((a,b)=>a.order-b.order);
  const bots=candidates.slice(0,16-humans.length).map(({p},i)=>({id:`bot-${i}`,name:`${p.team} ${p.year}`,players:botPlayers(p,`bot-${i}`,Math.max(-3,Math.min(10,adjustment)))}));
  const groups=Array.from({length:4},(_,i)=>({name:'ABCD'[i],teams:[]}));if(humans.length<1||humans.length>4)throw Error('杯赛支持 1–4 名玩家');humans.forEach((human,i)=>groups[[0,2,1,3][i]].teams.push(human));for(const group of groups)while(group.teams.length<4)group.teams.push(bots.shift());
  const teams=groups.flatMap(g=>g.teams),phases=[];const fixtures=[[[0,3],[1,2]],[[0,2],[3,1]],[[0,1],[2,3]]];
@@ -39,5 +39,9 @@ export function createTournament({mode='ucl',seed,humans,aiAdjustment,finalGoalF
 }
 export function statistics(tournament,cursor){const matches=tournament.phases.slice(0,cursor).flatMap(p=>p.matches);return tournament.teams.flatMap(t=>t.players.map(p=>{const played=matches.filter(m=>m.home===t.id||m.away===t.id),goals=played.reduce((n,m)=>n+m.events.filter(e=>e.scorer===p.id).length,0),assists=played.reduce((n,m)=>n+m.events.filter(e=>e.assist===p.id).length,0),mvps=played.filter(m=>m.mvp.player.id===p.id).length,total=played.reduce((n,m)=>n+(m.performances.find(x=>x.player.id===p.id)?.score||0),0);return{...p,team:t.name,goals,assists,mvps,played:played.length,average:played.length?total/played.length:0,award:goals*3+assists*2+mvps*2+total/10};})).filter(p=>p.played);}
 
-// Mixed old/new browser tabs share the older multiplayer balance until everyone updates.
-export function optionsForRoomMembers(members){return members.every(m=>m.state?.simulationVersion===simulationVersion)?{}:{aiAdjustment:2,finalGoalFactor:.88};}
+// Older tabs only know the pre-expansion NPC catalog. A mixed room uses that
+// exact catalog (and its seeded ordering) so all clients generate the same cup.
+export function optionsForRoomMembers(members){
+ const options={catalogVersion:members.every(m=>m.state?.catalogVersion===catalogVersion)?catalogVersion:19};
+ return members.every(m=>m.state?.simulationVersion===simulationVersion)?options:{...options,aiAdjustment:2,finalGoalFactor:.88};
+}
