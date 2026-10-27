@@ -6,7 +6,7 @@ export async function createTestDatabase() {
  const migration=readFileSync(new URL('../supabase/setup-all.sql',import.meta.url),'utf8');
  await db.exec(migration);
  async function rpc(uid,name,args){
-  if(!/^_?fc_[a-z0-9_]+$/.test(name))throw Error('Invalid test RPC name');
+  if(!/^_?fc(?:7)?_[a-z0-9_]+$/.test(name))throw Error('Invalid test RPC name');
   return db.transaction(async tx=>{
    await tx.query("select set_config('request.jwt.claim.sub',$1,true)",[uid||'']);
    const out=await tx.query(`select ${name}(${args.map((_,i)=>'$'+(i+1)).join(',')}) as value`,args);

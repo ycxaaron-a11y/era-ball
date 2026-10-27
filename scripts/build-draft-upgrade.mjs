@@ -18,5 +18,10 @@ writeFileSync(new URL('upgrade-all-v4.sql',root),readFileSync(new URL('upgrade-s
 
 writeFileSync(new URL('upgrade-all-v5.sql',root),readFileSync(new URL('upgrade-all-v4.sql',root),'utf8')+'\n'+readFileSync(new URL('final-v5.sql',root),'utf8'));
 
-const combined=readFileSync(new URL('upgrade-all-v5.sql',root),'utf8').replace(/^begin;\s*$/gm,'').replace(/^commit;\s*$/gm,'');
+const sevenRows=pools.filter(pool=>pool.mode==='world_cup').flatMap(pool=>pool.players.map(p=>`(${q(p.id)},${q(pool.team==='西德'?'德国':pool.team)})`));
+const sevenInsert=`insert into public.fc7_catalog(player_key,country) values\n${sevenRows.join(',\n')}\non conflict(player_key) do update set country=excluded.country;`;
+const sevenSql=readFileSync(new URL('seven.template.sql',root),'utf8').replace('-- @SEVEN_CATALOG@',()=>sevenInsert);
+writeFileSync(new URL('seven.sql',root),sevenSql);
+const combined=(readFileSync(new URL('upgrade-all-v5.sql',root),'utf8')+'\n'+sevenSql).replace(/^begin;\s*$/gm,'').replace(/^commit;\s*$/gm,'');
 writeFileSync(new URL('setup-all.sql',root),'-- ERA FC: full installation and all upgrades, safe to rerun.\n-- Keep your existing Supabase project. Enable Anonymous Sign-Ins separately.\nbegin;\n'+original+'\n'+combined+'\ncommit;\n');
+console.log(`Seven-a-side rooms: ${sevenRows.length} all-time World Cup cards.`);

@@ -539,7 +539,7 @@ $('formation').innerHTML = formationChoices.map(f => `<option value="${f}">${for
 render();
 lobby=initLobby({onCompetition:enterCompetition,onResume:showDraft,onProfile:profileUI,onMiniGames:showMiniGames});lobby.update(s);
 dailyView=createDailyCardView({onAllGames:showMiniGames});
-sevenView=createSevenView({onAllGames:showMiniGames});
+sevenView=createSevenView({onAllGames:showMiniGames,rpc});
 soundEngine=initAudio();
 const requestedHash=location.hash;
 if(requestedHash==='#draft'||requestedHash==='#season')showDraft();else if(requestedHash==='#mini-games')showMiniGames();else if(requestedHash==='#daily-card')showDailyCard();else if(requestedHash==='#seven')showSeven();else showHome();

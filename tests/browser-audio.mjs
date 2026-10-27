@@ -15,13 +15,13 @@ try{
   };
  });
  const p=await c.newPage(),errors=[],external=[];p.on('pageerror',e=>errors.push(e.message));p.on('request',r=>{if(/youtube|youtu\.be|googlevideo/.test(r.url()))external.push(r.url());});
- await p.goto(process.env.ERA_SITE_URL||'http://127.0.0.1:3001/');await p.click('#audio-toggle');assert.equal(await p.locator('#music-enabled').isChecked(),false);assert.equal(await p.locator('iframe,input[type=file],#music-link').count(),0);assert.match(await p.locator('.audio-track b').textContent(),/UNDER THE LIGHTS/);
+ await p.goto(process.env.ERA_SITE_URL||'http://127.0.0.1:3001/');await p.click('#audio-toggle');assert.equal(await p.locator('#music-enabled').isChecked(),false);assert.equal(await p.locator('iframe,input[type=file],#music-link').count(),0);assert.match(await p.locator('.audio-track b').textContent(),/MATCHDAY/);
  await p.check('#music-enabled');await p.waitForFunction(()=>window.musicStarts>15);assert.equal(await p.evaluate(()=>testAudioContext.state),'running');
  const first=await p.evaluate(()=>musicStarts);await p.waitForTimeout(750);assert.ok(await p.evaluate(n=>musicStarts>n,first),'rhythmic loop continues on its own');
  await p.locator('#music-volume').evaluate(el=>{el.value='65';el.dispatchEvent(new Event('input',{bubbles:true}));});await p.waitForTimeout(250);assert.ok(await p.evaluate(()=>Math.abs(gainNodes[0].gain.value-.65)<.01));
  await p.uncheck('#music-enabled');const stopped=await p.evaluate(()=>musicStarts);await p.waitForTimeout(500);assert.equal(await p.evaluate(()=>musicStarts),stopped,'muting stops scheduled notes');
  const beforeClick=await p.evaluate(()=>bufferStarts);await p.check('#sfx-enabled');await p.click('#audio-toggle');assert.ok(await p.evaluate(n=>bufferStarts>n,beforeClick),'click effects work with background muted');
- await p.click('#audio-toggle');await p.check('#music-enabled');await p.uncheck('#sfx-enabled');const buses=await p.evaluate(()=>musicBuses);await p.click('#audio-toggle');await p.click('#choose-solo');await p.click('[data-competition="world_cup"]');await p.click('#start-draft');await p.click('#audio-toggle');assert.match(await p.locator('.audio-track b').textContent(),/UNDER THE LIGHTS/);assert.equal(await p.evaluate(()=>musicBuses),buses,'navigation must not construct or restart music bus');await p.waitForTimeout(200);assert.match(await p.locator('#audio-notice').textContent(),/正在播放原创音乐/);
+ await p.click('#audio-toggle');await p.check('#music-enabled');await p.uncheck('#sfx-enabled');const buses=await p.evaluate(()=>musicBuses);await p.click('#audio-toggle');await p.click('#choose-solo');await p.click('[data-competition="world_cup"]');await p.click('#start-draft');await p.click('#audio-toggle');assert.match(await p.locator('.audio-track b').textContent(),/MATCHDAY/);assert.equal(await p.evaluate(()=>musicBuses),buses,'navigation must not construct or restart music bus');await p.waitForTimeout(200);assert.match(await p.locator('#audio-notice').textContent(),/正在播放原创音乐/);
  await p.uncheck('#music-enabled');await p.uncheck('#sfx-enabled');await p.reload();await p.click('#audio-toggle');assert.equal(await p.locator('#music-enabled').isChecked(),false);assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.deepEqual(external,[]);assert.deepEqual(errors,[]);
  // Render the full arrangement through real Web Audio offline: catches silence,
  // invalid schedules, runaway feedback and digital clipping across a full loop.
@@ -31,5 +31,5 @@ try{
   return result;
  });
  for(const r of rendered){assert.ok(r.rms>.05&&r.rms<.4,`${r.id} audible controlled average ${r.rms}`);assert.ok(r.peak<1,`${r.id} no clipping ${r.peak}`);}
- console.log('PASS original music: full 32-bar cinematic score rendered',JSON.stringify(rendered));console.log('PASS controls: real playback, looping, volume, mute, click SFX, scene change, saved preferences, no external audio requests or mobile errors');await c.close();
+ console.log('PASS original music: full 32-bar electric piano score rendered',JSON.stringify(rendered));console.log('PASS controls: real playback, looping, volume, mute, click SFX, scene change, saved preferences, no external audio requests or mobile errors');await c.close();
 }finally{await browser.close();}

@@ -30,7 +30,7 @@
 
 ## 4. 刷新原网站
 
-等 Cloudflare 最新部署显示成功，打开 https://era-ball.ycxaaron.workers.dev 。Mac 按 **Command + Shift + R**；Windows 按 **Ctrl + Shift + R** 强制刷新，朋友也要刷新。页脚应显示“星尘版 · R20”及版本编号；如果仍没有这个标记，请先到 Cloudflare → era-ball → Deployments 确认最新提交已部署成功，避免在旧页面反复升级数据库。建议本次从新一局开始，避免新旧球员目录和比赛引擎混用。
+等 Cloudflare 最新部署显示成功，打开 https://era-ball.ycxaaron.workers.dev 。Mac 按 **Command + Shift + R**；Windows 按 **Ctrl + Shift + R** 强制刷新，朋友也要刷新。页脚应显示“星尘版 · R21”及版本编号；如果仍没有这个标记，请先到 Cloudflare → era-ball → Deployments 确认最新提交已部署成功，避免在旧页面反复升级数据库。建议本次从新一局开始，避免新旧球员目录和比赛引擎混用。
 
 项目地址和 publishable key 已经放在网站公开配置中，不需要重新填写。不要把数据库密码、secret key 或 service_role key 填到网页。
 
@@ -53,3 +53,7 @@
 联机提示里也有 **复制升级 SQL** 按钮，它复制的就是同一份 `setup-all.sql`。复制后从第 2 步继续。如果连接仍失败，把提示的具体文字保留下来排查，避免重复创建项目。
 
 小游戏和声音设置均在浏览器本地运行，不需要额外升级 SQL。新的电脑难度应在所有成员刷新后新建房间使用；旧房间继续采用兼容的模拟参数。
+
+## 七人制联机（R21）
+
+这份完整 SQL 也包含独立七人制房间。之前运行过 R20 的项目还需重新运行最新整份文件一次，以安装 `fc7_*` 接口。入口为 Mini Games → 七人制 → 创建/加入房间，使用七人专属的 3 位码，支持 2–4 人。七人制是全时代世界杯混战，不选择年代。满员并全部点击准备后共同开赛；决赛使用共享时钟直播 90 分钟，必要时加时、手动点球。更多规则见 [七人制说明](seven-a-side.md)。

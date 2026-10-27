@@ -1,6 +1,6 @@
 # ERA FC
 
-世界杯 / 欧冠 / 欧洲杯 / 美洲杯跨年代足球选秀与逐轮杯赛。纯静态 ES modules，零 npm 运行依赖。当前界面 R20：独立大厅、Mini Games / Daily Card / 七人制、可控背景音乐与点击音效、三位房间码，以及单人 / 多人共享杯赛。
+世界杯 / 欧冠 / 欧洲杯 / 美洲杯跨年代足球选秀与逐轮杯赛。纯静态 ES modules，零 npm 运行依赖。当前界面 R21：独立大厅、Mini Games / Daily Card / 七人制、可控背景音乐与点击音效、三位房间码，以及单人 / 多人共享杯赛。
 
 ## 运行与部署
 
@@ -101,7 +101,7 @@ npm run dev
 
 Cloudflare Workers：构建命令为 `npm run build`，部署命令为 `npx wrangler deploy`。仓库根目录的 `wrangler.json` 已配置项目名、静态资源目录和必需的兼容日期。原部署命令 `npx wrangler deploy --name era-ball --assets ./dist` 也会读取该配置。若重试的是补配置之前的旧提交，可在 Cloudflare 构建设置中使用 `npx wrangler deploy --name era-ball --assets ./dist --compatibility-date 2026-10-19`，避免旧提交缺少配置。
 
-`npm run build` 生成 `dist/`，Netlify 自动执行此命令并发布该目录。每次构建按内容哈希为完整 JS 模块图和 CSS 使用独立的 `releases/<hash>/` 路径，避免首页更新但依赖模块仍是旧版。首页与 `release.json` 禁止缓存，资源目录使用不可变缓存。页脚显示“星尘版 · R20 · <hash>”用于核对实际加载版本；GitHub 已推送不等于线上已发布，部署状态须在 Cloudflare 的 Deployments 确认。
+`npm run build` 生成 `dist/`，Netlify 自动执行此命令并发布该目录。每次构建按内容哈希为完整 JS 模块图和 CSS 使用独立的 `releases/<hash>/` 路径，避免首页更新但依赖模块仍是旧版。首页与 `release.json` 禁止缓存，资源目录使用不可变缓存。页脚显示“星尘版 · R21 · <hash>”用于核对实际加载版本；GitHub 已推送不等于线上已发布，部署状态须在 Cloudflare 的 Deployments 确认。
 
 ## 大厅与短房间码
 
@@ -115,8 +115,10 @@ Cloudflare Workers：构建命令为 `npm run build`，部署命令为 `npx wran
 
 ## 声音
 
-右下角“声音”可开关原创电影感运动配乐、调整音量或关闭点击音效。R19 使用全新 108 BPM 合成弦乐、低鼓与长音主题，32 小节约 71 秒，分为铺陈、推进、间奏和高潮。跨大厅、选秀、比赛及小游戏连续播放；保留设备上的静音偏好。详情见 [声音与赛事曲目](docs/music.md)。音乐本身不需要 SQL；R20 新增球员用于十一人联机时需运行最新合并 SQL。
+右下角“声音”提供 R21 全新 MATCHDAY 原创电钢琴律动：116 BPM、七和弦、切分贝斯与轻鼓。保留开关和音量，切换所有界面时连续播放。详见 [音乐说明](docs/music.md)。
 
 ## 七人制 Mini Game
 
-从 Mini Games → 七人制进入，1 名门将 + 6 名场上球员，四套阵型。只选年代、不选赛事；全部四类来源按球员国家归类，同一国家/年代/身份取最高初始能力版本，共 68 个国家、241 组国家年代、2401 张去重候选。手动 Spin、3 次额外重转、两次确认、永久槽位、动态评级和现有羁绊生效。独立本地存档、八队单场淘汰杯赛、三轮冠军；不覆盖十一人选秀。本版本七人制为单人玩法，不使用 Supabase，详见 [七人制说明](docs/seven-a-side.md)。
+从 Mini Games → 七人制进入全时代混战：1 门将 + 6 名场上球员，四套阵型。按国家合并已收录的全部世界杯届次，共 21 个国家、1007 张具体版本；不选年代、不锁年代、无年代惩罚，同一人同队不可重复。手动 Spin、3 次额外重转、两次确认、位置扣分、动态评级和羁绊保留。传奇 AI 从各国历代阵容中优化并有 +2 强度。
+
+支持单人及独立的 2–4 人七人制联机房间，使用 3 位码，共同选人锁、准备、种子和杯赛进度。决赛 0–90 分钟约 8 秒，必要时加时，再手动逐脚点球；线上共享服务器时钟。七人制不覆盖十一人存档。联机需执行最新 [完整 SQL](supabase/setup-all.sql)，详见 [七人制说明](docs/seven-a-side.md)。
