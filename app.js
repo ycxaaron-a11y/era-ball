@@ -1,3 +1,4 @@
+import {createPickTracker,showPickNotice,clearPickNotices} from './pick-notifications.js';
 import {createSevenView} from './seven-view.js';
 import {initAudio} from './audio.js';
 import {createDailyCardView} from './daily-card-view.js';
@@ -26,6 +27,7 @@ let preferredCapacity=2;
 let lobby=null,dailyView=null,sevenView=null,soundEngine=null;
 let playStyle=sessionStorage.getItem('era-fc-play-style')||'solo';
 let placement = null, filter = '全部';
+const pickTracker=createPickTracker(showPickNotice);
 let room = null, timer = null, remote = null, busy = false, polling = false, shownResult = false;
 let roomGeneration = 0, roomMessage = '', serverRevision = 0;
 let lockedIds = new Set(), committing = false, spinning = false, spinFrame = null, spinToken = 0;
@@ -383,6 +385,7 @@ function onlineUI() {
 }
 $('online').onclick = onlineUI;
 function disconnect() {
+  pickTracker.reset();clearPickNotices();
   sessionStorage.removeItem('era-fc-season-room-v4');closeSeason();seasonRoom=null;
   placement = null; roomGeneration++; spinToken++; spinning=false; spinFrame=null; clearInterval(timer); timer = null; room = null; remote = null; lockedIds=new Set(); shownResult = false;
   sessionExpired = false; status(''); render();
@@ -458,7 +461,7 @@ async function connect(create) {
     if(create)validateRoomPool(s,preferredCapacity);
     const d=create?await rpc('fc_create_room_v9',{p_mode:s.mode,p_capacity:preferredCapacity}):await rpc('fc_connect_v3',{p_code:code,p_mode:s.mode});
     room=d.code;roomGeneration++;shownResult=false;serverRevision=0;
-    const initial=await rpc('fc_read_v3',{p_code:room});remote=initial;
+    const initial=await rpc('fc_read_v3',{p_code:room});remote=initial;pickTracker.reset();pickTracker.update(initial);
     lockedIds=new Set(initial.locks.filter(l=>!l.mine).map(l=>l.player_id));
     const mine=initial.members.find(m=>m.is_self);
     if(mine?.state){s=hydrateState(mine.state);serverRevision=mine.revision;}
@@ -476,7 +479,7 @@ async function connect(create) {
 async function poll() {
   if(polling||!room||awakeningActive)return;polling=true;const generation=roomGeneration;
   try{
-    const d=await rpc('fc_read_v3',{p_code:room});if(generation!==roomGeneration||awakeningActive)return;remote=d;
+    const d=await rpc('fc_read_v3',{p_code:room});if(generation!==roomGeneration||awakeningActive)return;remote=d;pickTracker.update(d);
     const previousLocks=[...lockedIds].sort().join('|');
     lockedIds=new Set(d.locks.filter(l=>!l.mine).map(l=>l.player_id));
     const locksChanged=previousLocks!==[...lockedIds].sort().join('|');
@@ -546,6 +549,6 @@ if(requestedHash==='#draft'||requestedHash==='#season')showDraft();else if(reque
 
 if(requestedHash==='#season'&&s.picks.every(Boolean)){
  const resume=sessionStorage.getItem('era-fc-season-room-v4');
- if(resume){(async()=>{try{const d=await rpc('fc_read_v3',{p_code:resume});room=resume;roomGeneration++;remote=d;const mine=d.members.find(m=>m.is_self);s=hydrateState(mine.state);serverRevision=mine.revision;shownResult=true;save();await syncOnlineSeason(true);timer=setInterval(poll,1500);}catch(e){closeSeason();notify('恢复联机赛季失败，请检查网络后刷新。'+readableError(e));}})();}
+ if(resume){(async()=>{try{const d=await rpc('fc_read_v3',{p_code:resume});room=resume;roomGeneration++;remote=d;pickTracker.reset();pickTracker.update(d);const mine=d.members.find(m=>m.is_self);s=hydrateState(mine.state);serverRevision=mine.revision;shownResult=true;save();await syncOnlineSeason(true);timer=setInterval(poll,1500);}catch(e){closeSeason();notify('恢复联机赛季失败，请检查网络后刷新。'+readableError(e));}})();}
  else{try{openLocalSeason();}catch{closeSeason();}}
 }

@@ -13,6 +13,15 @@ try{
  const users=await Promise.all(pages.map(p=>p.evaluate(()=>JSON.parse(sessionStorage.getItem('era-fc-auth-v2')).access_token)));
  await host.click('#seven-spin');await host.waitForSelector('[data-seven-player]');let snapshot=await rpc(users[0],'fc7_read',[code]),state=snapshot.members.find(m=>m.is_self).state,pool=sevenPoolById.get(state.pool),card=pool.players.find(p=>!p.positions.includes('GK'));
  await host.locator(`[data-seven-player="${card.id}"]`).click();await host.locator('[data-seven-slot="0"]').click();assert.equal((await rpc(users[0],'fc7_read',[code])).members.find(m=>m.is_self).state.picks.filter(Boolean).length,0);await host.locator('[data-seven-slot="0"]').click();await host.waitForFunction(()=>document.querySelector('[data-seven-slot="0"] .placed-player'));
+ await pages[1].waitForSelector('.pick-notice');
+ assert.equal(await pages[1].locator('.pick-notice strong').textContent(),card.name);
+ assert.equal(await pages[1].locator('.pick-notice b').textContent(),card.tier);
+ assert.ok(!(await pages[1].locator('.pick-notice').textContent()).includes(String(card.rating)));
+ assert.equal(await host.locator('.pick-notice').count(),0);
+ assert.ok(await pages[1].locator('.pick-notice').evaluate(el=>el.getBoundingClientRect().right<=innerWidth));
+ await pages[1].locator('.pick-notice button').click();
+ assert.equal(await pages[1].locator('.pick-notice').count(),0);
+ console.log('PASS opponent pick notice: correct Chinese name and tier, no ability value, no self notification, dismissible');
  console.log('PASS seven browser lobby: anonymous auth, 4 seats, Chinese names escaped, country spin and two-click server-confirmed pick');
  for(let u=0;u<4;u++){
   for(let n=u===0?1:0;n<7;n++){

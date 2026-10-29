@@ -68,7 +68,7 @@ function botTeam(pool,index){
  const candidates=Object.keys(sevenFormations).map(formation=>{
   const used=new Set(),picks=sevenPositions(formation).map(pos=>{
    const options=pool.players.filter(p=>!used.has(p.identity)&&(pos==='GK')===p.positions.includes('GK')).sort((a,b)=>(b.rating-positionPenalty(b,pos))-(a.rating-positionPenalty(a,pos))||a.id.localeCompare(b.id));const p=options[0];if(p)used.add(p.identity);return p?.id||null;
-  });return {id:`bot-${index}`,name:`${pool.country}传奇队`,formation,picks,legendBonus:2};
+  });return {id:`bot-${index}`,name:`${pool.country}传奇队`,formation,picks,legendBonus:0};
  });return candidates.sort((a,b)=>sevenOverall(b)-sevenOverall(a))[0];
 }
 export function startSevenCup(s,seed=Date.now(),humans=null){
