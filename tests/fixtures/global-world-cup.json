@@ -1,0 +1,1445 @@
+{
+  "source": "https://github.com/jfjelstul/worldcup/blob/master/data-csv/squads.csv",
+  "retrieved": "2026-10-29",
+  "squads": [
+    {
+      "pool": "wc-nigeria-1994",
+      "team": "Nigeria",
+      "year": 1994,
+      "players": [
+        {
+          "sourceId": "P-75277",
+          "name": "Peter Rufai",
+          "position": "GK"
+        },
+        {
+          "sourceId": "P-39450",
+          "name": "Augustine Eguavoen",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-72134",
+          "name": "Benedict Iroha",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-46986",
+          "name": "Stephen Keshi",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-74808",
+          "name": "Uche Okechukwu",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-91949",
+          "name": "Chidi Nwanu",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-54287",
+          "name": "Finidi George",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-91871",
+          "name": "Thompson Oliha",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-98228",
+          "name": "Rashidi Yekini",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-83122",
+          "name": "Jay-Jay Okocha",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-22820",
+          "name": "Emmanuel Amunike",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-72487",
+          "name": "Samson Siasia",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-26103",
+          "name": "Emeka Ezeugo",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-84893",
+          "name": "Daniel Amokachi",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-41790",
+          "name": "Sunday Oliseh",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-25342",
+          "name": "Alloysius Agu",
+          "position": "GK"
+        },
+        {
+          "sourceId": "P-25715",
+          "name": "Victor Ikpeba",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-95888",
+          "name": "Efan Ekoku",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-74911",
+          "name": "Michael Emenalo",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-34180",
+          "name": "Uche Okafor",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-56969",
+          "name": "Mutiu Adepoju",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-77276",
+          "name": "Wilfred Agbonavbare",
+          "position": "GK"
+        }
+      ]
+    },
+    {
+      "pool": "wc-algeria-2014",
+      "team": "Algeria",
+      "year": 2014,
+      "players": [
+        {
+          "sourceId": "P-96937",
+          "name": "Cédric Si Mohamed",
+          "position": "GK"
+        },
+        {
+          "sourceId": "P-21116",
+          "name": "Madjid Bougherra",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-55717",
+          "name": "Faouzi Ghoulam",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-41251",
+          "name": "Essaïd Belkalem",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-19453",
+          "name": "Rafik Halliche",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-09059",
+          "name": "Djamel Mesbah",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-70560",
+          "name": "Hassan Yebda",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-23484",
+          "name": "Mehdi Lacen",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-31598",
+          "name": "Nabil Ghilas",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-12165",
+          "name": "Sofiane Feghouli",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-24983",
+          "name": "Yacine Brahimi",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-21704",
+          "name": "Carl Medjani",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-59199",
+          "name": "Islam Slimani",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-96340",
+          "name": "Nabil Bentaleb",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-63360",
+          "name": "Hillal Soudani",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-52593",
+          "name": "Mohamed Zemmamouche",
+          "position": "GK"
+        },
+        {
+          "sourceId": "P-98016",
+          "name": "Liassine Cadamuro-Bentaïba",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-59147",
+          "name": "Abdelmoumene Djabou",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-83421",
+          "name": "Saphir Taïder",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-58383",
+          "name": "Aïssa Mandi",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-91590",
+          "name": "Riyad Mahrez",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-09673",
+          "name": "Mehdi Mostefa",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-00596",
+          "name": "Raïs M'Bolhi",
+          "position": "GK"
+        }
+      ]
+    },
+    {
+      "pool": "wc-australia-2006",
+      "team": "Australia",
+      "year": 2006,
+      "players": [
+        {
+          "sourceId": "P-78863",
+          "name": "Mark Schwarzer",
+          "position": "GK"
+        },
+        {
+          "sourceId": "P-91832",
+          "name": "Lucas Neill",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-66908",
+          "name": "Craig Moore",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-44926",
+          "name": "Tim Cahill",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-21864",
+          "name": "Jason Culina",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-24935",
+          "name": "Tony Popovic",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-83566",
+          "name": "Brett Emerton",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-26858",
+          "name": "Josip Skoko",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-78071",
+          "name": "Mark Viduka",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-14290",
+          "name": "Harry Kewell",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-06205",
+          "name": "Stan Lazaridis",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-06384",
+          "name": "Ante Covic",
+          "position": "GK"
+        },
+        {
+          "sourceId": "P-63129",
+          "name": "Vince Grella",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-60008",
+          "name": "Scott Chipperfield",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-59039",
+          "name": "John Aloisi",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-69089",
+          "name": "Michael Beauchamp",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-92892",
+          "name": "Archie Thompson",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-55125",
+          "name": "Zeljko Kalac",
+          "position": "GK"
+        },
+        {
+          "sourceId": "P-06754",
+          "name": "Joshua Kennedy",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-14862",
+          "name": "Luke Wilkshire",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-90087",
+          "name": "Mile Sterjovski",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-36196",
+          "name": "Mark Milligan",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-84486",
+          "name": "Mark Bresciano",
+          "position": "MF"
+        }
+      ]
+    },
+    {
+      "pool": "wc-usa-2002",
+      "team": "United States",
+      "year": 2002,
+      "players": [
+        {
+          "sourceId": "P-76191",
+          "name": "Brad Friedel",
+          "position": "GK"
+        },
+        {
+          "sourceId": "P-34695",
+          "name": "Frankie Hejduk",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-09888",
+          "name": "Gregg Berhalter",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-58649",
+          "name": "Pablo Mastroeni",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-88043",
+          "name": "John O'Brien",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-68379",
+          "name": "David Regis",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-97784",
+          "name": "Eddie Lewis",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-96178",
+          "name": "Earnie Stewart",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-86464",
+          "name": "Joe-Max Moore",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-97459",
+          "name": "Claudio Reyna",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-38074",
+          "name": "Clint Mathis",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-72797",
+          "name": "Jeff Agoos",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-49258",
+          "name": "Cobi Jones",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-77238",
+          "name": "Steve Cherundolo",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-78068",
+          "name": "Josh Wolff",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-49219",
+          "name": "Carlos Llamosa",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-91976",
+          "name": "DaMarcus Beasley",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-07553",
+          "name": "Kasey Keller",
+          "position": "GK"
+        },
+        {
+          "sourceId": "P-43736",
+          "name": "Tony Meola",
+          "position": "GK"
+        },
+        {
+          "sourceId": "P-60597",
+          "name": "Brian McBride",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-05728",
+          "name": "Landon Donovan",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-92064",
+          "name": "Tony Sanneh",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-02842",
+          "name": "Eddie Pope",
+          "position": "DF"
+        }
+      ]
+    },
+    {
+      "pool": "wc-costa-rica-2014",
+      "team": "Costa Rica",
+      "year": 2014,
+      "players": [
+        {
+          "sourceId": "P-81392",
+          "name": "Keylor Navas",
+          "position": "GK"
+        },
+        {
+          "sourceId": "P-65320",
+          "name": "Jhonny Acosta",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-04808",
+          "name": "Giancarlo González",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-52458",
+          "name": "Michael Umaña",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-11767",
+          "name": "Celso Borges",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-97912",
+          "name": "Óscar Duarte",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-57722",
+          "name": "Christian Bolaños",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-39550",
+          "name": "David Myrie",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-70812",
+          "name": "Joel Campbell",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-99590",
+          "name": "Bryan Ruiz",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-74906",
+          "name": "Michael Barrantes",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-24906",
+          "name": "Waylon Francis",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-85499",
+          "name": "Óscar Granados",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-21246",
+          "name": "Randall Brenes",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-81779",
+          "name": "Júnior Díaz",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-26483",
+          "name": "Cristian Gamboa",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-24978",
+          "name": "Yeltsin Tejeda",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-88896",
+          "name": "Patrick Pemberton",
+          "position": "GK"
+        },
+        {
+          "sourceId": "P-88814",
+          "name": "Roy Miller",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-16119",
+          "name": "Diego Calvo",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-11307",
+          "name": "Marco Ureña",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-71361",
+          "name": "José Miguel Cubero",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-51981",
+          "name": "Daniel Cambronero",
+          "position": "GK"
+        }
+      ]
+    },
+    {
+      "pool": "wc-switzerland-2014",
+      "team": "Switzerland",
+      "year": 2014,
+      "players": [
+        {
+          "sourceId": "P-46325",
+          "name": "Diego Benaglio",
+          "position": "GK"
+        },
+        {
+          "sourceId": "P-09988",
+          "name": "Stephan Lichtsteiner",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-09704",
+          "name": "Reto Ziegler",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-94161",
+          "name": "Philippe Senderos",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-62393",
+          "name": "Steve von Bergen",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-95507",
+          "name": "Michael Lang",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-97143",
+          "name": "Tranquillo Barnetta",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-09596",
+          "name": "Gökhan Inler",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-07180",
+          "name": "Haris Seferovic",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-77224",
+          "name": "Granit Xhaka",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-54713",
+          "name": "Valon Behrami",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-63312",
+          "name": "Yann Sommer",
+          "position": "GK"
+        },
+        {
+          "sourceId": "P-43367",
+          "name": "Ricardo Rodríguez",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-00875",
+          "name": "Valentin Stocker",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-35818",
+          "name": "Blerim Džemaili",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-77553",
+          "name": "Gélson Fernandes",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-36686",
+          "name": "Mario Gavranović",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-51579",
+          "name": "Admir Mehmedi",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-07453",
+          "name": "Josip Drmić",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-25758",
+          "name": "Johan Djourou",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-90361",
+          "name": "Roman Bürki",
+          "position": "GK"
+        },
+        {
+          "sourceId": "P-25131",
+          "name": "Fabian Schär",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-39460",
+          "name": "Xherdan Shaqiri",
+          "position": "MF"
+        }
+      ]
+    },
+    {
+      "pool": "wc-romania-1994",
+      "team": "Romania",
+      "year": 1994,
+      "players": [
+        {
+          "sourceId": "P-29644",
+          "name": "Florin Prunea",
+          "position": "GK"
+        },
+        {
+          "sourceId": "P-12625",
+          "name": "Dan Petrescu",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-87995",
+          "name": "Daniel Prodan",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-43639",
+          "name": "Miodrag Belodedici",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-86528",
+          "name": "Ioan Lupescu",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-19537",
+          "name": "Gheorghe Popescu",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-04888",
+          "name": "Dorinel Munteanu",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-83265",
+          "name": "Iulian Chiriță",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-69340",
+          "name": "Florin Răducioiu",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-30739",
+          "name": "Gheorghe Hagi",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-54322",
+          "name": "Ilie Dumitrescu",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-44978",
+          "name": "Bogdan Stelea",
+          "position": "GK"
+        },
+        {
+          "sourceId": "P-79864",
+          "name": "Tibor Selymes",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-81047",
+          "name": "Gheorghe Mihali",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-11979",
+          "name": "Basarab Panduru",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-15773",
+          "name": "Ion Vlădoiu",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-67833",
+          "name": "Viorel Moldovan",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-17898",
+          "name": "Constantin Gâlcă",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-42028",
+          "name": "Corneliu Papură",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-44448",
+          "name": "Ovidiu Stîngă",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-00266",
+          "name": "Marian Ivan",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-47501",
+          "name": "Ștefan Preda",
+          "position": "GK"
+        }
+      ]
+    },
+    {
+      "pool": "wc-poland-1982",
+      "team": "Poland",
+      "year": 1982,
+      "players": [
+        {
+          "sourceId": "P-50717",
+          "name": "Józef Młynarczyk",
+          "position": "GK"
+        },
+        {
+          "sourceId": "P-17208",
+          "name": "Marek Dziuba",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-15890",
+          "name": "Janusz Kupcewicz",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-88971",
+          "name": "Tadeusz Dolny",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-43189",
+          "name": "Paweł Janas",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-51539",
+          "name": "Piotr Skrobowski",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-46254",
+          "name": "Jan Jałocha",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-02493",
+          "name": "Waldemar Matysik",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-48883",
+          "name": "Władysław Żmuda",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-01165",
+          "name": "Stefan Majewski",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-57931",
+          "name": "Włodzimierz Smolarek",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-22126",
+          "name": "Roman Wójcicki",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-40684",
+          "name": "Andrzej Buncol",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-98924",
+          "name": "Andrzej Pałasz",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-91411",
+          "name": "Włodzimierz Ciołek",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-21597",
+          "name": "Grzegorz Lato",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-92867",
+          "name": "Andrzej Szarmach",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-69383",
+          "name": "Marek Kusto",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-18317",
+          "name": "Andrzej Iwan",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-03652",
+          "name": "Zbigniew Boniek",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-71920",
+          "name": "Jacek Kazimierski",
+          "position": "GK"
+        },
+        {
+          "sourceId": "P-76784",
+          "name": "Piotr Mowlik",
+          "position": "GK"
+        }
+      ]
+    },
+    {
+      "pool": "wc-saudi-arabia-1994",
+      "team": "Saudi Arabia",
+      "year": 1994,
+      "players": [
+        {
+          "sourceId": "P-12996",
+          "name": "Mohamed Al-Deayea",
+          "position": "GK"
+        },
+        {
+          "sourceId": "P-60332",
+          "name": "Abdullah Al-Dosari",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-44462",
+          "name": "Mohammed Al-Khilaiwi",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-50171",
+          "name": "Abdullah Sulaiman Zubromawi",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-51472",
+          "name": "Ahmed Jamil Madani",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-21550",
+          "name": "Fuad Anwar",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-39267",
+          "name": "Fahad Al-Ghesheyan",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-23379",
+          "name": "Fahad Al-Bishi",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-03048",
+          "name": "Majed Abdullah",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-41428",
+          "name": "Saeed Al-Owairan",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-89920",
+          "name": "Fahad Al-Mehallel",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-88041",
+          "name": "Sami Al-Jaber",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-29132",
+          "name": "Mohamed Abd Al-Jawad",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-78753",
+          "name": "Khalid Al-Muwallid",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-77098",
+          "name": "Saleh Al-Dawod",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-75079",
+          "name": "Talal Jebreen",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-02755",
+          "name": "Yassir Al-Taifi",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-22789",
+          "name": "Awad Al-Anazi",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-61224",
+          "name": "Hamzah Saleh",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-60814",
+          "name": "Hamzah Idris",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-43829",
+          "name": "Hussein Al-Sadiq",
+          "position": "GK"
+        },
+        {
+          "sourceId": "P-36914",
+          "name": "Ibrahim Al-Helwah",
+          "position": "GK"
+        }
+      ]
+    },
+    {
+      "pool": "wc-iran-1998",
+      "team": "Iran",
+      "year": 1998,
+      "players": [
+        {
+          "sourceId": "P-56772",
+          "name": "Ahmad Reza Abedzadeh",
+          "position": "GK"
+        },
+        {
+          "sourceId": "P-93633",
+          "name": "Mehdi Mahdavikia",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-36676",
+          "name": "Naeim Saadavi",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-52257",
+          "name": "Mohammad Khakpour",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-91754",
+          "name": "Afshin Peyrovani",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-72482",
+          "name": "Karim Bagheri",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-62874",
+          "name": "Alireza Mansourian",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-44661",
+          "name": "Sirous Dinmohammadi",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-78085",
+          "name": "Hamid Estili",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-38371",
+          "name": "Ali Daei",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-25470",
+          "name": "Khodadad Azizi",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-68937",
+          "name": "Nima Nakisa",
+          "position": "GK"
+        },
+        {
+          "sourceId": "P-54946",
+          "name": "Ali Latifi",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-31741",
+          "name": "Nader Mohammadkhani",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-55250",
+          "name": "Ali Akbar Ostad-Asadi",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-92960",
+          "name": "Reza Shahroudi",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-65077",
+          "name": "Javad Zarincheh",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-90057",
+          "name": "Sattar Hamedani",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-11493",
+          "name": "Behnam Seraj",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-06693",
+          "name": "Mehdi Pashazadeh",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-32369",
+          "name": "Mehrdad Minavand",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-00315",
+          "name": "Parviz Boroumand",
+          "position": "GK"
+        }
+      ]
+    },
+    {
+      "pool": "wc-china-2002",
+      "team": "China",
+      "year": 2002,
+      "players": [
+        {
+          "sourceId": "P-31496",
+          "name": "Qi An",
+          "position": "GK"
+        },
+        {
+          "sourceId": "P-77096",
+          "name": "Enhua Zhang",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-83943",
+          "name": "Pu Yang",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-29611",
+          "name": "Chengying Wu",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-24535",
+          "name": "Zhiyi Fan",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-37402",
+          "name": "Jiayi Shao",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-50519",
+          "name": "Jihai Sun",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-28870",
+          "name": "Tie Li",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-05235",
+          "name": "Mingyu Ma",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-27445",
+          "name": "Haidong Hao",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-19411",
+          "name": "Genwei Yu",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-05845",
+          "name": "Maozhen Su",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-13701",
+          "name": "Yao Gao",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-12619",
+          "name": "Weifeng Li",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-90061",
+          "name": "Junzhe Zhao",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-57338",
+          "name": "Bo Qu",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-60686",
+          "name": "Wei Du",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-71211",
+          "name": "Xiaopeng Li",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-68056",
+          "name": "Hong Qi",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-84550",
+          "name": "Chen Yang",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-39905",
+          "name": "Yunlong Xu",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-02177",
+          "name": "Jin Jiang",
+          "position": "GK"
+        },
+        {
+          "sourceId": "P-92129",
+          "name": "Chuliang Ou",
+          "position": "GK"
+        }
+      ]
+    },
+    {
+      "pool": "wc-new-zealand-2010",
+      "team": "New Zealand",
+      "year": 2010,
+      "players": [
+        {
+          "sourceId": "P-60304",
+          "name": "Mark Paston",
+          "position": "GK"
+        },
+        {
+          "sourceId": "P-72305",
+          "name": "Ben Sigmund",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-10960",
+          "name": "Tony Lochhead",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-57058",
+          "name": "Winston Reid",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-95458",
+          "name": "Ivan Vicelich",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-81126",
+          "name": "Ryan Nelsen",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-53863",
+          "name": "Simon Elliott",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-72098",
+          "name": "Tim Brown",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-90145",
+          "name": "Shane Smeltz",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-90951",
+          "name": "Chris Killen",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-85046",
+          "name": "Leo Bertos",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-45524",
+          "name": "Glen Moss",
+          "position": "GK"
+        },
+        {
+          "sourceId": "P-92939",
+          "name": "Andy Barron",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-20963",
+          "name": "Rory Fallon",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-54658",
+          "name": "Michael McGlinchey",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-76440",
+          "name": "Aaron Clapham",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-86132",
+          "name": "Dave Mulligan",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-15454",
+          "name": "Andrew Boyens",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-84524",
+          "name": "Tommy Smith",
+          "position": "DF"
+        },
+        {
+          "sourceId": "P-17136",
+          "name": "Chris Wood",
+          "position": "FW"
+        },
+        {
+          "sourceId": "P-26059",
+          "name": "Jeremy Christie",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-72611",
+          "name": "Jeremy Brockie",
+          "position": "MF"
+        },
+        {
+          "sourceId": "P-48947",
+          "name": "James Bannatyne",
+          "position": "GK"
+        }
+      ]
+    }
+  ]
+}

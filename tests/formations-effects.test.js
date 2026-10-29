@@ -1,3 +1,4 @@
+import {globalSquads} from '../catalog-global.js';
 import {varietySquads} from '../catalog-variety.js';
 import {expansionSquads} from '../catalog-expansion.js';
 import { startSpunDraft } from './helpers.mjs';
@@ -34,7 +35,7 @@ test('new formations submit through the existing RPC whitelist without losing th
   }
 });
 test('every identity has a stable height across its era versions and known values are not overwritten', () => {
-  const seen=new Map(), supplied=new Map([...expansionSquads,...varietySquads].flatMap(s=>s.players).filter(p=>Number.isInteger(p.heightCm)).map(p=>[p.identity,p.heightCm]));
+  const seen=new Map(), supplied=new Map([...expansionSquads,...varietySquads,...globalSquads].flatMap(s=>s.players).filter(p=>Number.isInteger(p.heightCm)).map(p=>[p.identity,p.heightCm]));
   for (const p of pools.flatMap(s=>s.players)) {
     assert.ok(Number.isInteger(p.heightCm)&&p.heightCm>=150&&p.heightCm<=210);
     if(seen.has(p.identity))assert.equal(p.heightCm,seen.get(p.identity));

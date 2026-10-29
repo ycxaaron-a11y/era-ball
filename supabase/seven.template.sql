@@ -24,7 +24,7 @@ alter table public.fc7_members enable row level security;
 alter table public.fc7_locks enable row level security;
 revoke all on public.fc7_catalog,public.fc7_rooms,public.fc7_members,public.fc7_locks from anon,authenticated;
 create or replace function public.fc7_protocol() returns jsonb language sql security definer set search_path=public,pg_temp as $$
- select jsonb_build_object('version',2,'catalog_count',(select count(*) from fc7_catalog));
+ select jsonb_build_object('version',3,'catalog_count',(select count(*) from fc7_catalog));
 $$;
 create or replace function public.fc7_read(p_code text) returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$
 declare v_room public.fc7_rooms;

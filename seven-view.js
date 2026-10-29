@@ -33,7 +33,7 @@ export function createSevenView({onAllGames,rpc}){
  async function connect(code=null){
   if(busy)return;formName=$('seven-name').value;capacity=Number($('seven-capacity').value);joinCode=$('seven-code').value.trim().toUpperCase();if(code!==null&&!/^[A-Z0-9]{3}$/.test(joinCode)){message='请输入朋友的 3 位七人房间码。';render();return;}
   busy=true;message='正在连接七人房间…';render();const token=generation;
-  try{const capability=await rpc('fc7_protocol',{});if(capability.version!==2||capability.catalog_count<sevenCardById.size)throw Object.assign(Error('fc7_protocol upgrade'),{status:404});const data=await rpc('fc7_connect',{p_code:code===null?null:joinCode,p_capacity:capacity,p_name:formName});if(token!==generation)return;upgrade=false;message='';selected=null;preview=null;accept(data,++requestSeq);pollingOn();}
+  try{const capability=await rpc('fc7_protocol',{});if(capability.version!==3||capability.catalog_count<sevenCardById.size)throw Object.assign(Error('fc7_protocol upgrade'),{status:404});const data=await rpc('fc7_connect',{p_code:code===null?null:joinCode,p_capacity:capacity,p_name:formName});if(token!==generation)return;upgrade=false;message='';selected=null;preview=null;accept(data,++requestSeq);pollingOn();}
   catch(e){if(token===generation)error(e);}finally{if(token===generation){busy=false;render();}}
  }
  async function network(action,payload={}){

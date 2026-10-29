@@ -1,3 +1,4 @@
+import {globalSquads} from './catalog-global.js';
 import {varietySquads} from './catalog-variety.js';
 import {internationalSquads} from './catalog-international.js';
 import {modes,isMode} from './modes.js';
@@ -21,7 +22,7 @@ export const eraById = id => eras.find(e => e.id === id);
 export const eraForYear = year => eras.find(e => year >= e.from && year <= e.to);
 export const tier = r => r >= 105 ? 'S+' : r >= 98 ? 'S' : r >= 90 ? 'A' : r >= 82 ? 'B' : r >= 75 ? 'C' : 'D';
 export const tierClass = t => `tier-${t === 'S+' ? 'sp' : t.toLowerCase()}`;
-const allSquads = balanceRatings([...worldCupSquads, ...uclSquads, ...expansionSquads, ...internationalSquads,...varietySquads]);
+const allSquads = balanceRatings([...worldCupSquads, ...uclSquads, ...expansionSquads, ...internationalSquads,...varietySquads,...globalSquads]);
 const heightProfiles = buildHeightProfiles(allSquads.flatMap(squad => squad.players));
 export const pools = allSquads.map(squad => ({
   ...squad, era: String(squad.year), eraId: eraForYear(squad.year).id,
@@ -176,7 +177,7 @@ export function hydrateState(saved) {
   } catch { return fallback; }
 }
 export const simulationVersion = 15;
-export const catalogVersion = 20;
+export const catalogVersion = 24;
 export const legacyPoolIds = new Set([...worldCupSquads,...uclSquads,...expansionSquads,...internationalSquads].map(s=>s.id));
 // Existing SQL averages rating; submit effective values so online and local rules agree.
 export function networkState(s) {

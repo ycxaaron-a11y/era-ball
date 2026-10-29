@@ -1,6 +1,15 @@
 // A/B form the draft core. Only explicitly selected historical peaks are S/S+.
 // Base cards are capped at 110; chemistry-adjusted ability has no upper cap.
 export const peakRatings={
+ 'wc-costa-rica-2014':{'keylor-navas':102},
+ 'wc-romania-1994':{'gheorghe-hagi':101},
+ 'wc-poland-1982':{'zbigniew-boniek':100},
+ 'ucl-monaco-2017':{'kylian-mbappe':100,'bernardo-silva':98,'kamil-glik':98},
+ 'ucl-deportivo-2004':{'juan-carlos-valeron':99,'jorge-andrade':98},
+ 'ucl-roma-2018':{'alisson':100,'edin-dzeko':99},
+ 'ucl-leipzig-2020':{'dayot-upamecano':98},
+ 'ucl-villarreal-2022':{'pau-torres':98},
+ 'euro-wales-2016':{'gareth-bale':105,'aaron-ramsey':100},
  'wc-uruguay-2010':{'diego-forlan':102,'luis-suarez':96},
  'wc-belgium-2018':{'eden-hazard':102,'kevin-de-bruyne':100,'thibaut-courtois':100},
  'ucl-arsenal-2006':{'thierry-henry':105,'jens-lehmann':98},
